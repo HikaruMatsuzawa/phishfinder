@@ -4,11 +4,11 @@
 
   // 先頭から何件のseedを使うかです。nullにすると全seedを使います。
   // 最初は3件で動作確認し、発表用の本調査では10件、30件、nullのように増やします。
-  "seed_limit": 3,
+  "seed_limit": null,
 
   // 1つのseedから最大何件の類似ドメイン候補を調べるかです。nullにすると生成した全候補を使います。
   // 最初は10件で確認し、本調査では100件以上に増やします。
-  "variant_limit": 10,
+  "variant_limit": null,
 
   // trueにすると、実在した候補についてMX/NSレコードも取得します。DNS問い合わせが増えるため遅くなります。
   "dns_details": false,
@@ -54,7 +54,7 @@
     "enabled": true,
 
     // スクリーンショットを取得する候補数です。seedページはこの数とは別に保存されます。
-    "limit": 3,
+    "limit": 30,
 
     // スクリーンショット保存先です。seedごとにサブフォルダを作ります。
     "output_dir": "reports/screenshots",

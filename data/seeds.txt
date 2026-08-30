@@ -29,6 +29,7 @@ goo.ne.jp
 lemino.docomo.ne.jp
 docomo-cycle.jp
 docomo-insurance.co.jp
+docomo-fg.com
 
 # NTTグループ: データ・法人・周辺サービス
 nttdata-strategy.com
@@ -42,10 +43,17 @@ nttdata-mse.com
 nttdata-univ.co.jp
 nttpc.co.jp
 nttsmc.com
+nttcom.co.jp
+nttcoms.com
+support.ntt.com
+b-portal.ntt.com
+onlineshop.docomobusiness.ntt.com
+docomobusiness.ntt.com
 
 # EC・フリマ・小売
 rakuten.co.jp
 mercari.com
+amazon.co.jp
 zozo.jp
 uniqlo.com
 gu-global.com
@@ -54,6 +62,7 @@ askul.co.jp
 yodobashi.com
 biccamera.com
 qoo10.jp
+aeonretail.com
 
 # 決済・ポイント・金融サービス
 paypay.ne.jp
@@ -66,6 +75,14 @@ mizuhobank.co.jp
 resonabank.co.jp
 aeonbank.co.jp
 jibunbank.co.jp
+jcb.co.jp
+saisoncard.co.jp
+eposcard.co.jp
+orico.co.jp
+monex.co.jp
+nomura.co.jp
+daiwa.jp
+matsui.co.jp
 
 # 通信・ID・ポータル
 softbank.jp
@@ -81,6 +98,9 @@ jr-odekake.net
 jalan.net
 rakuten-travel.co.jp
 pia.jp
+etc-meisai.jp
+jreast.co.jp
+jr-central.co.jp
 
 # エンタメ・ゲーム・サブスク
 nintendo.com
@@ -98,3 +118,13 @@ sagawa-exp.co.jp
 tepco.co.jp
 tokyogas.co.jp
 secom.co.jp
+japanpost.jp
+post.japanpost.jp
+jp-bank.japanpost.jp
+
+# 公共・手続き系
+nta.go.jp
+e-tax.nta.go.jp
+myna.go.jp
+nenkin.go.jp
+hellowork.mhlw.go.jp
