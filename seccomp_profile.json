@@ -1,0 +1,12 @@
+{
+  "comment": "Chromium sandbox用にユーザー名前空間の作成を許可するseccomp設定です。",
+  "names": [
+    "clone",
+    "setns",
+    "unshare"
+  ],
+  "action": "SCMP_ACT_ALLOW",
+  "args": [],
+  "includes": {},
+  "excludes": {}
+}

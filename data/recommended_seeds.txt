@@ -1,0 +1,62 @@
+# 日本企業・日本サービス中心の発表向けseed候補です。
+# 有名すぎる数社だけに偏らず、EC、決済、金融、通信、旅行、ゲーム、小売を混ぜています。
+# 実在候補が見つかっても、それだけで悪性とは判断しません。
+
+# EC・フリマ・小売
+rakuten.co.jp
+mercari.com
+zozo.jp
+uniqlo.com
+gu-global.com
+muji.com
+askul.co.jp
+yodobashi.com
+biccamera.com
+qoo10.jp
+
+# 決済・ポイント・金融サービス
+paypay.ne.jp
+rakuten-card.co.jp
+rakuten-sec.co.jp
+sbi-sec.co.jp
+smbc.co.jp
+mufg.jp
+mizuhobank.co.jp
+resonabank.co.jp
+aeonbank.co.jp
+jibunbank.co.jp
+
+# 通信・ID・ポータル
+docomo.ne.jp
+softbank.jp
+au.com
+ntt.com
+yahoo.co.jp
+line.me
+daccount.docomo.ne.jp
+
+# 交通・旅行・チケット
+ana.co.jp
+jal.co.jp
+eki-net.com
+jr-odekake.net
+jalan.net
+rakuten-travel.co.jp
+pia.jp
+
+# エンタメ・ゲーム・サブスク
+nintendo.com
+sony.jp
+playstation.com
+square-enix.com
+bandainamcoid.com
+dmm.com
+abema.tv
+unext.jp
+
+# 生活インフラ・配送
+kuronekoyamato.co.jp
+sagawa-exp.co.jp
+tepco.co.jp
+tokyogas.co.jp
+secom.co.jp

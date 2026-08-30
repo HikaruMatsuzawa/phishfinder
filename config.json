@@ -1,0 +1,73 @@
+{
+  // 調査対象の正規ドメイン一覧です。1行1ドメインで書きます。
+  "seeds_path": "data/seeds.txt",
+
+  // 先頭から何件のseedを使うかです。nullにすると全seedを使います。
+  "seed_limit": null,
+
+  // 1つのseedから最大何件の類似ドメイン候補を調べるかです。nullにすると生成した全候補を使います。
+  "variant_limit": 30,
+
+  // trueにすると、実在した候補についてMX/NSレコードも取得します。DNS問い合わせが増えるため遅くなります。
+  "dns_details": false,
+
+  // trueにすると、RDAPから登録日を取得します。外部問い合わせが増えるため遅くなります。
+  "rdap": false,
+
+  // trueにすると、TLS証明書の有無、期間、発行者を取得します。443番ポートへ接続します。
+  "tls": false,
+
+  // trueにすると、tqdmの進捗バーを表示します。
+  "progress": true,
+
+  // レポート形式です。jsonまたはcsvを指定します。
+  "output_format": "json",
+
+  // メインレポートの保存先です。
+  "output_path": "reports/domain_report.json",
+
+  "http": {
+    // trueにすると、Domain Risk上位候補だけHTTPメタデータを取得します。
+    "enabled": true,
+
+    // HTTPメタデータを取得する上位候補数です。
+    "limit": 30,
+
+    // HTTP取得のタイムアウト秒数です。
+    "timeout_seconds": 5,
+
+    // HTMLを最大何バイトまで読むかです。大きくすると情報は増えますが、保存量と時間も増えます。
+    "max_html_bytes": 200000,
+
+    // HTTPアクセス時に送るUser-Agentです。
+    "user_agent": "phishfinder-research-tool/0.1"
+  },
+
+  "screenshots": {
+    // trueにすると、Domain Risk上位候補のスクリーンショットを取得します。デフォルトは安全のためfalseです。
+    "enabled": true,
+
+    // スクリーンショットを取得する候補数です。seedページはこの数とは別に保存されます。
+    "limit": 30,
+
+    // スクリーンショット保存先です。seedごとにサブフォルダを作ります。
+    "output_dir": "reports/screenshots",
+
+    // 1ページあたりのタイムアウト秒数です。
+    "timeout_seconds": 8,
+
+    // falseならJavaScriptを無効化して撮影します。見た目は崩れることがありますが安全寄りです。
+    "javascript_enabled": false,
+
+    // trueにすると、候補だけでなくseedの正規サイトもseedサブフォルダに保存します。
+    "include_seed": true
+  },
+
+  "review": {
+    // trueにすると、人間が分類するためのCSVを出力します。
+    "enabled": true,
+
+    // レビューCSVの保存先です。human_label列に分類を書き込めます。
+    "output_path": "reports/review.csv"
+  }
+}

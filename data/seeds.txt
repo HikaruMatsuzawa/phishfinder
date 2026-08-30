@@ -1,0 +1,100 @@
+# デフォルトの調査seedです。
+# 日本企業・日本サービスを中心に、NTTグループを厚めに入れています。
+# 実在候補が見つかっても、それだけで悪性とは判断しません。
+
+# NTTグループ: 持株・主要会社
+group.ntt
+ntt.com
+docomo.ne.jp
+nttdata.com
+ntt-east.co.jp
+ntt-west.co.jp
+ntt-us.com
+ntt-ae.co.jp
+ntt-finance.co.jp
+ntt-at.co.jp
+ntt-tx.co.jp
+nttlogisco.com
+
+# NTTグループ: ドコモ・関連サービス
+dcard.docomo.ne.jp
+dmarket.docomo.ne.jp
+dpoint.docomo.ne.jp
+daccount.docomo.ne.jp
+ahamo.com
+irumo.docomo.ne.jp
+ocn.ne.jp
+plala.or.jp
+goo.ne.jp
+lemino.docomo.ne.jp
+docomo-cycle.jp
+docomo-insurance.co.jp
+
+# NTTグループ: データ・法人・周辺サービス
+nttdata-strategy.com
+nttdata-kansai.co.jp
+nttdata-tokai.co.jp
+nttdata-hokkaido.co.jp
+nttdata-kyushu.co.jp
+nttdata-bizsys.co.jp
+nttdata-ccs.co.jp
+nttdata-mse.com
+nttdata-univ.co.jp
+nttpc.co.jp
+nttsmc.com
+
+# EC・フリマ・小売
+rakuten.co.jp
+mercari.com
+zozo.jp
+uniqlo.com
+gu-global.com
+muji.com
+askul.co.jp
+yodobashi.com
+biccamera.com
+qoo10.jp
+
+# 決済・ポイント・金融サービス
+paypay.ne.jp
+rakuten-card.co.jp
+rakuten-sec.co.jp
+sbi-sec.co.jp
+smbc.co.jp
+mufg.jp
+mizuhobank.co.jp
+resonabank.co.jp
+aeonbank.co.jp
+jibunbank.co.jp
+
+# 通信・ID・ポータル
+softbank.jp
+au.com
+yahoo.co.jp
+line.me
+
+# 交通・旅行・チケット
+ana.co.jp
+jal.co.jp
+eki-net.com
+jr-odekake.net
+jalan.net
+rakuten-travel.co.jp
+pia.jp
+
+# エンタメ・ゲーム・サブスク
+nintendo.com
+sony.jp
+playstation.com
+square-enix.com
+bandainamcoid.com
+dmm.com
+abema.tv
+unext.jp
+
+# 生活インフラ・配送
+kuronekoyamato.co.jp
+sagawa-exp.co.jp
+tepco.co.jp
+tokyogas.co.jp
+secom.co.jp

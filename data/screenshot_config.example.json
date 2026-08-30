@@ -1,0 +1,31 @@
+{
+  // スクリーンショット機能を小さく試すためのサンプル設定です。
+  "seeds_path": "data/seeds.txt",
+  "seed_limit": 2,
+  "variant_limit": 5,
+  "dns_details": false,
+  "rdap": false,
+  "tls": false,
+  "progress": true,
+  "output_format": "json",
+  "output_path": "reports/screenshot_smoke_report.json",
+  "http": {
+    "enabled": true,
+    "limit": 10,
+    "timeout_seconds": 5,
+    "max_html_bytes": 200000,
+    "user_agent": "phishfinder-research-tool/0.1"
+  },
+  "screenshots": {
+    "enabled": true,
+    "limit": 1,
+    "output_dir": "reports/screenshots",
+    "timeout_seconds": 8,
+    "javascript_enabled": false,
+    "include_seed": true
+  },
+  "review": {
+    "enabled": true,
+    "output_path": "reports/review.csv"
+  }
+}

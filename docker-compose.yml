@@ -1,0 +1,18 @@
+services:
+  phishfinder:
+    build:
+      context: .
+    image: phishfinder:local
+    init: true
+    ipc: host
+    working_dir: /app
+    user: pwuser
+    security_opt:
+      - seccomp=./seccomp_profile.json
+    volumes:
+      - ./config.json:/app/config.json
+      - ./data:/app/data
+      - ./reports:/app/reports
+    entrypoint:
+      - python
+      - run.py
