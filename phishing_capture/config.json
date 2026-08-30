@@ -1,7 +1,9 @@
 ﻿{
-  // 公開フィッシングURLの取得元です。
-  // OpenPhishは公開テキストフィード、PhishTankはCSVフィードです。
-  // 取得できないフィードがあっても、他のフィードやmanual_urls.txtで処理を続けます。
+  // ============================================================
+  // 公開フィッシングURLの取得元
+  // ============================================================
+  // OpenPhishは公開テキストフィード，PhishTankはCSVフィードです．
+  // 取得できないフィードがあっても，他のフィードやmanual_urls.txtで処理を続けます．
   "feeds": [
     {
       "name": "openphish",
@@ -18,209 +20,1156 @@
     }
   ],
 
-  // フィードとは別に、自分で観察したいURLを書くファイルです。
-  // 1行に1URLを書きます。#で始まる行は無視されます。
+  // ============================================================
+  // 手動URL
+  // ============================================================
+  // フィードとは別に，自分で観察したいURLを書くファイルです．
+  // 1行に1URLを書きます．#で始まる行は無視されます．
   "manual_urls_path": "phishing_capture/manual_urls.txt",
 
-  // 1回の実行で観察するURL数です。
-  // 200〜399でスクショが取れたものだけを、この件数までreview.csvに残します。
-  "max_urls": 20,
+  // ============================================================
+  // 観察件数
+  // ============================================================
+  // 1回の実行でreview.csvに残す最大件数です．
+  // 200〜399で応答し，スクリーンショット取得に成功したものだけを対象にします．
+  "max_urls": 500,
 
-  // 発表用候補を集めるために、最大で何件まで公開DBの候補を確認するかです。
-  // ドコモ系のように数が少ない条件では、max_urlsより大きめにしておきます。
-  "max_checked_urls": 500,
+  // 発表用候補を集めるために，公開DBから最大で何件まで確認するかです．
+  // 日本企業など対象が限定されるブランドでは，max_urlsより大きめにします．
+  "max_checked_urls": 10000,
 
-  // 出力先です。実行ごとに日時つきサブフォルダを作ります。
+  // ============================================================
+  // 出力
+  // ============================================================
+  // 実行ごとに日時付きサブフォルダを作ります．
   "output_dir": "reports/phishing_observation",
 
-  // 1サイトあたりの最大待ち時間です。長くすると成功率は上がりますが、全体の実行時間も増えます。
+  // ============================================================
+  // ページ取得
+  // ============================================================
+  // 1サイトあたりの最大待ち時間です．
   "timeout_seconds": 6,
 
-  // DOM読み込み後に追加で待つ時間です。JavaScriptで画面を描画するサイト向けです。
+  // DOM読み込み後に追加で待つ時間です．
+  // JavaScriptによって描画されるページ向けです．
   "wait_after_load_ms": 2500,
 
-  // trueにすると、通信が落ち着くのを待ってからスクショを撮ります。
-  // 広告や解析タグで完全に静止しないサイトもあるため、失敗しても処理は続けます。
+  // trueの場合，通信が落ち着くのを待ってからスクリーンショットを撮ります．
+  // 広告や解析タグなどで完全に静止しない場合でも，失敗時は処理を続けます．
   "wait_until_network_idle": true,
 
-  // bodyのテキストが一定時間変わらないことを確認してからスクショを撮ります。
-  // ページ反映前の真っ白スクショを減らすための設定です。
+  // bodyのテキストが一定時間変化しないことを確認してから撮影します．
+  // 真っ白なスクリーンショットを減らすための設定です．
   "wait_for_stable_body_ms": 1200,
 
-  // スクリーンショットを実際の見た目に近づけるため、初期値はONにしています。
-  // クリック、入力、ダウンロード許可は行いません。
+  // JavaScriptを有効にします．
+  // クリック，文字入力，ファイルダウンロードなどは行いません．
   "javascript_enabled": true,
 
-  // HTML本文を保存するかどうかです。
-  // 発表用のスクショ確認だけならfalseのままで十分です。
+  // HTML本文を保存するかどうかです．
+  // スクリーンショット中心の観察ではfalseで十分です．
   "save_html": false,
 
-  // trueにすると、PhishTankのCSVでverified=yesかつonline=yesのURLだけを使います。
-  // OpenPhishの公開テキストフィードにはこの列がないため、OpenPhishのURLはそのまま候補扱いです。
+  // trueの場合，フィード取得，URL候補確認，サイト観察の進捗バーを表示します．
+  "progress": true,
+
+  // trueの場合のみ、reference_sites にある正規サイトのスクリーンショットを保存します。
+  // デフォルトでは false にして、発表で比較用に必要なときだけ有効化します。
+  "capture_reference_sites": true,
+
+  // ============================================================
+  // フィード・HTTPレスポンスの条件
+  // ============================================================
+  // trueの場合，PhishTankではverified=yesかつonline=yesだけを利用します．
+  // OpenPhishには同等の列がないため，そのまま候補として利用します．
   "require_verified_online": true,
 
-  // trueにすると、実際にアクセスした結果が200〜399でスクショ保存できたものだけをreview.csvに残します。
-  // 404や503などはrejected.csvに分けます。
+  // trueの場合，200〜399で応答し，スクリーンショットを保存できたものだけを
+  // review.csvに残します．それ以外はrejected.csvに保存します．
   "require_http_success": true,
 
-  // trueにすると、reference_sitesに登録している正規サイト本体は候補から除外します。
-  // 公開DBに本物URLが誤って混ざっていても、screenshots側に保存しないための設定です。
+  // trueの場合，reference_sitesに登録された正規サイトそのものは除外します．
   "exclude_reference_hosts": true,
 
-  // ここに単語を入れると、その単語を含むURLや公開DB上の標的ブランドだけを観察します。
-  // 日本企業・日本でよく使われるサービスを広めに入れています。
-  // 空配列 [] にすると、フィード内のURLを上から順に観察します。
+  // ============================================================
+  // 探索対象
+  // ============================================================
+  // URLや公開DB上の標的ブランド情報などに以下の語が含まれていた場合，
+  // 観察候補として扱います．
+  //
+  // 日本国内で広く利用される企業・サービスを中心に，
+  // 金融，通信，EC，配送，交通，公共サービス，エンタメ，
+  // SaaSなどを広く対象にしています．
+  //
+  // "au"，"line"，"office"，"jre"，"pia"などの極端に短い文字列は，
+  // URL部分一致で誤検知しやすいため，可能な限り具体的な名称を使用しています．
+  //
+  // 空配列 [] にすると，ブランドによる事前フィルタリングを行いません．
   "target_terms": [
+
+    // ----------------------------------------------------------
+    // NTTドコモ・dサービス
+    // ----------------------------------------------------------
     "docomo",
+    "ntt docomo",
+    "nttdocomo",
+    "ドコモ",
     "daccount",
     "d account",
     "dアカウント",
     "ahamo",
-    "nttdocomo",
-    "ntt",
+    "d card",
+    "d-card",
+    "dカード",
+    "d払い",
+    "d payment",
+    "docomo hikari",
+    "ドコモ光",
+
+    // ----------------------------------------------------------
+    // KDDI・au
+    // ----------------------------------------------------------
+    "kddi",
+    "au id",
+    "au one",
+    "au pay",
+    "auペイ",
+    "au pay card",
+    "au payカード",
+    "auじぶん銀行",
+    "au jibun bank",
+    "auひかり",
+    "au hikari",
+    "uq mobile",
+    "uqモバイル",
+    "povo",
+
+    // ----------------------------------------------------------
+    // ソフトバンク
+    // ----------------------------------------------------------
+    "softbank",
+    "ソフトバンク",
+    "softbank hikari",
+    "ソフトバンク光",
+    "ymobile",
+    "y mobile",
+    "ワイモバイル",
+    "linemo",
+
+    // ----------------------------------------------------------
+    // 楽天
+    // ----------------------------------------------------------
     "rakuten",
     "楽天",
+    "rakuten ichiba",
+    "楽天市場",
     "rakuten card",
+    "楽天カード",
+    "rakuten bank",
+    "楽天銀行",
+    "rakuten securities",
+    "楽天証券",
+    "rakuten pay",
+    "楽天ペイ",
+    "rakuten mobile",
+    "楽天モバイル",
+    "rakuten travel",
+    "楽天トラベル",
+    "rakuma",
+    "ラクマ",
+
+    // ----------------------------------------------------------
+    // クレジットカード・信販
+    // ----------------------------------------------------------
     "jcb",
-    "saison",
+    "jcb card",
+    "visa",
+    "visa card",
+    "mastercard",
+    "master card",
+    "american express",
+    "american express japan",
+    "amex",
+    "アメリカンエキスプレス",
+    "diners club",
+    "ダイナースクラブ",
     "saison card",
-    "epos",
+    "saison",
+    "セゾンカード",
     "epos card",
+    "epos",
+    "エポスカード",
     "orico",
-    "aeon",
+    "オリコ",
+    "orico card",
     "aeon card",
+    "イオンカード",
+    "smbc card",
+    "mitsui sumitomo card",
+    "三井住友カード",
+    "vpass",
+    "olive",
+    "dc card",
+    "nicos",
+    "nicos card",
+    "uc card",
+    "cedyna",
+    "cedyna card",
+    "aplus",
+    "アプラス",
+    "lifecard",
+    "life card",
+    "ライフカード",
+    "pocket card",
+    "ポケットカード",
+    "seven card",
+    "セブンカード",
+    "ts cubic",
+    "ts cubic card",
+    "トヨタファイナンス",
+    "toyota finance",
+    "view card",
+    "viewcard",
+    "ビューカード",
+    "jal card",
+    "jalカード",
+    "ana card",
+    "anaカード",
+    "paypay card",
+    "paypayカード",
+    "paidy",
+    "ペイディ",
+
+    // ----------------------------------------------------------
+    // メガバンク・主要銀行
+    // ----------------------------------------------------------
+    "mufg",
+    "mufg bank",
+    "三菱ufj銀行",
+    "三菱UFJ銀行",
+    "smbc",
+    "smbc bank",
+    "三井住友銀行",
+    "mizuho",
+    "mizuho bank",
+    "みずほ銀行",
+    "resona",
+    "resona bank",
+    "りそな銀行",
+    "埼玉りそな銀行",
+    "yucho",
+    "jp bank",
+    "japan post bank",
+    "ゆうちょ銀行",
+    "sony bank",
+    "ソニー銀行",
+    "住信sbiネット銀行",
+    "sbi sumishin net bank",
+    "netbk",
+    "sbi新生銀行",
+    "sbi shinsei bank",
+    "paypay bank",
+    "paypay銀行",
+    "seven bank",
+    "セブン銀行",
+    "aeon bank",
+    "イオン銀行",
+    "gmoあおぞらネット銀行",
+    "gmo aozora net bank",
+    "tokyo star bank",
+    "東京スター銀行",
+
+    // ----------------------------------------------------------
+    // 地方銀行
+    // ----------------------------------------------------------
+    "chiba bank",
+    "千葉銀行",
+    "bank of yokohama",
+    "横浜銀行",
+    "shizuoka bank",
+    "静岡銀行",
+    "fukuoka bank",
+    "福岡銀行",
+    "hokkaido bank",
+    "北海道銀行",
+    "77 bank",
+    "七十七銀行",
+    "hachijuni bank",
+    "八十二銀行",
+
+    // ----------------------------------------------------------
+    // 証券
+    // ----------------------------------------------------------
+    "sbi securities",
+    "sbi sec",
+    "sbisec",
+    "sbi証券",
+    "nomura securities",
+    "nomura",
+    "野村證券",
+    "野村証券",
+    "daiwa securities",
+    "daiwa",
+    "大和証券",
+    "matsui securities",
+    "matsui",
+    "松井証券",
+    "monex securities",
+    "monex",
+    "マネックス証券",
+    "smbc nikko",
+    "smbc nikko securities",
+    "smbc日興証券",
+    "kabucom",
+    "三菱ufj eスマート証券",
+    "moomoo securities",
+    "moomoo証券",
+
+    // ----------------------------------------------------------
+    // 消費者金融
+    // ----------------------------------------------------------
+    "promise",
+    "プロミス",
+    "acom",
+    "アコム",
+    "aiful",
+    "アイフル",
+    "mobit",
+    "モビット",
+
+    // ----------------------------------------------------------
+    // キャッシュレス・電子マネー
+    // ----------------------------------------------------------
     "paypay",
-    "mercari",
-    "メルカリ",
+    "merpay",
+    "メルペイ",
+    "paypal",
+    "paypal japan",
+    "nanaco",
+    "waon",
+    "famipay",
+    "ファミペイ",
+
+    // ----------------------------------------------------------
+    // 暗号資産
+    // ----------------------------------------------------------
+    "coincheck",
+    "コインチェック",
+    "bitflyer",
+    "ビットフライヤー",
+    "bitbank",
+    "ビットバンク",
+    "gmo coin",
+    "gmoコイン",
+    "sbi vc trade",
+
+    // ----------------------------------------------------------
+    // EC・フリマ・通販
+    // ----------------------------------------------------------
+    "amazon",
     "amazon japan",
     "amazon co jp",
-    "yahoo japan",
-    "yahoo",
-    "line",
-    "mufg",
-    "smbc",
-    "mitsui sumitomo",
-    "三井住友",
-    "sumitomo mitsui",
-    "mizho",
-    "mizuho",
-    "みずほ",
-    "resona",
-    "りそな",
-    "jp bank",
-    "japan post",
-    "日本郵便",
-    "ゆうちょ",
-    "yucho",
-    "jibun bank",
-    "au jibun",
-    "sony bank",
-    "monex",
-    "nomura",
-    "daiwa",
-    "matsui",
-    "softbank",
-    "kddi",
-    "au",
-    "uq",
-    "ymobile",
-    "eki net",
-    "ekinet",
-    "suica",
-    "view card",
-    "jr east",
-    "ana",
-    "jal",
-    "yamato",
-    "kuronekoyamato",
-    "sagawa",
-    "etc meisai",
-    "etc-meisai",
-    "e tax",
-    "etax",
-    "nta",
-    "myna",
-    "mynaportal",
-    "nenkin",
-    "hellowork",
-    "dmm",
-    "nintendo",
-    "playstation",
-    "sony",
-    "muji",
-    "uniqlo",
-    "ticket pia",
-    "pia",
-    "lawson ticket",
-    "l-tike"
-  ],
-
-  // ページ本文やタイトルに含まれていたら記録するブランド語です。
-  // 増やすほど「ブランド名あり」「フィッシング疑い」の自動分類に反映されます。
-  "brand_terms": [
-    "amazon",
-    "apple",
-    "google",
-    "microsoft",
-    "facebook",
-    "instagram",
-    "line",
-    "rakuten",
-    "楽天",
-    "rakuten card",
-    "jcb",
-    "saison",
-    "epos",
-    "orico",
-    "docomo",
-    "dアカウント",
-    "d account",
-    "ahamo",
-    "ntt",
-    "aeon",
-    "paypay",
+    "amazon.co.jp",
+    "amazon marketplace",
+    "amazon prime",
+    "prime video",
     "mercari",
     "メルカリ",
+    "mercari shops",
+    "メルカリshops",
+    "yahoo shopping",
+    "yahooショッピング",
+    "yahoo auction",
+    "yahoo auctions",
+    "yahooオークション",
+    "ヤフオク",
+    "au pay market",
+    "au payマーケット",
+    "zozotown",
+    "zozo",
+    "qoo10",
+    "temu",
+    "shein",
+    "aliexpress",
+    "lohaco",
+    "askul",
+    "アスクル",
+
+    // ----------------------------------------------------------
+    // 家電量販店・小売
+    // ----------------------------------------------------------
+    "yodobashi",
+    "yodobashi camera",
+    "ヨドバシ",
+    "ヨドバシカメラ",
+    "bic camera",
+    "ビックカメラ",
+    "yamada denki",
+    "ヤマダデンキ",
+    "edion",
+    "エディオン",
+    "joshin",
+    "ジョーシン",
+    "nojima",
+    "ノジマ",
+    "nitori",
+    "ニトリ",
+    "iris ohyama",
+    "アイリスオーヤマ",
+    "uniqlo",
+    "ユニクロ",
+    "gu",
+    "ジーユー",
+    "muji",
+    "無印良品",
+    "abc mart",
+    "abc-mart",
+    "matsumoto kiyoshi",
+    "マツモトキヨシ",
+    "welcia",
+    "ウエルシア",
+    "sugi pharmacy",
+    "スギ薬局",
+
+    // ----------------------------------------------------------
+    // コンビニ
+    // ----------------------------------------------------------
+    "seven eleven",
+    "セブンイレブン",
+    "familymart",
+    "ファミリーマート",
+    "famima",
+    "ファミマ",
+    "lawson",
+    "ローソン",
+
+    // ----------------------------------------------------------
+    // 配送
+    // ----------------------------------------------------------
     "japan post",
     "日本郵便",
-    "ゆうちょ",
-    "yucho",
-    "三井住友",
-    "smbc",
-    "mufg",
-    "mizuho",
-    "みずほ",
-    "resona",
-    "りそな",
-    "softbank",
-    "kddi",
-    "au",
+    "郵便局",
+    "yu pack",
+    "ゆうパック",
     "yamato",
+    "yamato transport",
+    "kuronekoyamato",
+    "kuroneko",
+    "ヤマト運輸",
+    "クロネコヤマト",
     "sagawa",
+    "sagawa express",
+    "佐川急便",
+
+    // ----------------------------------------------------------
+    // ETC
+    // ----------------------------------------------------------
+    "etc meisai",
+    "etc-meisai",
+    "etc利用照会サービス",
+    "etc利用照会",
+    "etc usage inquiry",
+    "etc personal card",
+    "etcパーソナルカード",
+
+    // ----------------------------------------------------------
+    // JR・交通系IC
+    // ----------------------------------------------------------
     "eki net",
+    "ekinet",
+    "えきねっと",
+    "jr east",
+    "jr東日本",
+    "jr central",
+    "jr東海",
+    "jr west",
+    "jr西日本",
+    "jr kyushu",
+    "jr九州",
+    "jr hokkaido",
+    "jr北海道",
+    "jr shikoku",
+    "jr四国",
     "suica",
+    "mobile suica",
+    "モバイルsuica",
+    "pasmo",
+    "mobile pasmo",
+    "モバイルpasmo",
+    "icoca",
+    "toica",
+    "sugoca",
+    "nimoca",
+    "kitaca",
+    "manaca",
+    "smart ex",
+    "smartex",
+    "expy",
+    "e5489",
+    "wester",
+    "jre point",
+
+    // ----------------------------------------------------------
+    // 私鉄
+    // ----------------------------------------------------------
+    "tokyo metro",
+    "東京メトロ",
+    "toei subway",
+    "都営地下鉄",
+    "tokyu",
+    "東急",
+    "odakyu",
+    "小田急",
+    "keio",
+    "京王",
+    "seibu railway",
+    "西武鉄道",
+    "tobu railway",
+    "東武鉄道",
+    "keisei",
+    "京成電鉄",
+    "kintetsu",
+    "近鉄",
+    "hankyu",
+    "阪急",
+    "hanshin",
+    "阪神",
+    "meitetsu",
+    "名鉄",
+    "nankai",
+    "南海電鉄",
+
+    // ----------------------------------------------------------
+    // 航空
+    // ----------------------------------------------------------
     "ana",
+    "ana airlines",
+    "all nippon airways",
+    "全日空",
+    "ana mileage club",
+    "anaマイレージクラブ",
     "jal",
-    "dmm",
+    "japan airlines",
+    "日本航空",
+    "jal mileage bank",
+    "jalマイレージバンク",
+    "skymark",
+    "スカイマーク",
+    "peach aviation",
+    "peach",
+    "jetstar",
+    "jetstar japan",
+
+    // ----------------------------------------------------------
+    // 旅行・ホテル予約
+    // ----------------------------------------------------------
+    "booking.com",
+    "booking com",
+    "agoda",
+    "airbnb",
+    "expedia",
+    "trip.com",
+    "jalan",
+    "じゃらん",
+    "じゃらんnet",
+    "ikyu",
+    "一休",
+    "一休.com",
+    "jtb",
+    "his",
+
+    // ----------------------------------------------------------
+    // 電力・ガス・公共料金
+    // ----------------------------------------------------------
+    "tepco",
+    "東京電力",
+    "tepco energy partner",
+    "東京電力エナジーパートナー",
+    "kansai electric",
+    "関西電力",
+    "kepco",
+    "chubu electric",
+    "中部電力",
+    "chuden",
+    "tohoku electric",
+    "東北電力",
+    "kyushu electric",
+    "九州電力",
+    "hokkaido electric",
+    "北海道電力",
+    "chugoku electric",
+    "中国電力",
+    "shikoku electric",
+    "四国電力",
+    "okinawa electric",
+    "沖縄電力",
+    "tokyo gas",
+    "東京ガス",
+    "osaka gas",
+    "大阪ガス",
+    "toho gas",
+    "東邦ガス",
+    "tokyo water",
+    "東京都水道局",
+
+    // ----------------------------------------------------------
+    // ISP・固定回線
+    // ----------------------------------------------------------
+    "nuro",
+    "nuro光",
+    "ocn",
+    "ocn mobile",
+    "biglobe",
+    "ビッグローブ",
+    "@nifty",
+    "nifty",
+    "so-net",
+    "sonet",
+    "jcom",
+    "j:com",
+    "mineo",
+    "iijmio",
+
+    // ----------------------------------------------------------
+    // Yahoo・LINE
+    // ----------------------------------------------------------
+    "yahoo japan",
+    "yahoo.co.jp",
+    "yahoo mail",
+    "yahooメール",
+    "line account",
+    "lineアカウント",
+    "line login",
+
+    // ----------------------------------------------------------
+    // Google
+    // ----------------------------------------------------------
+    "google account",
+    "googleアカウント",
+    "gmail",
+    "google workspace",
+    "google drive",
+    "google photos",
+    "google one",
+    "google play",
+    "youtube",
+    "youtube premium",
+    "youtube music",
+
+    // ----------------------------------------------------------
+    // Apple
+    // ----------------------------------------------------------
+    "apple",
+    "apple id",
+    "apple account",
+    "appleアカウント",
+    "icloud",
+    "icloud mail",
+    "app store",
+
+    // ----------------------------------------------------------
+    // Microsoft
+    // ----------------------------------------------------------
+    "microsoft",
+    "microsoft account",
+    "microsoftアカウント",
+    "microsoft 365",
+    "office 365",
+    "outlook",
+    "hotmail",
+    "onedrive",
+    "sharepoint",
+    "microsoft teams",
+
+    // ----------------------------------------------------------
+    // SNS・コミュニケーション
+    // ----------------------------------------------------------
+    "facebook",
+    "facebook messenger",
+    "instagram",
+    "whatsapp",
+    "threads",
+    "tiktok",
+    "twitter",
+    "x account",
+    "discord",
+
+    // ----------------------------------------------------------
+    // 動画・音楽
+    // ----------------------------------------------------------
+    "netflix",
+    "netflix japan",
+    "disney plus",
+    "disney+",
+    "hulu japan",
+    "u-next",
+    "unext",
+    "abema",
+    "abema premium",
+    "wowow",
+    "tver",
+    "dazn",
+    "spotify",
+    "apple music",
+
+    // ----------------------------------------------------------
+    // ゲーム
+    // ----------------------------------------------------------
     "nintendo",
-    "playstation"
+    "nintendo account",
+    "ニンテンドーアカウント",
+    "nintendo switch",
+    "my nintendo",
+    "playstation",
+    "playstation network",
+    "psn",
+    "sony account",
+    "steam",
+    "epic games",
+    "epic games store",
+    "riot games",
+    "valorant",
+    "square enix",
+    "スクウェアエニックス",
+    "square enix account",
+    "sega id",
+    "bandai namco",
+    "bandai namco id",
+    "capcom id",
+    "konami id",
+    "pokemon",
+    "ポケモン",
+    "pokemon center online",
+    "ポケモンセンターオンライン",
+
+    // ----------------------------------------------------------
+    // チケット
+    // ----------------------------------------------------------
+    "ticket pia",
+    "チケットぴあ",
+    "eplus",
+    "イープラス",
+    "lawson ticket",
+    "l-tike",
+    "ローチケ",
+    "ticket board",
+
+    // ----------------------------------------------------------
+    // 行政・公共
+    // ----------------------------------------------------------
+    "e tax",
+    "e-tax",
+    "etax",
+    "国税庁",
+    "nta",
+    "確定申告",
+    "mynaportal",
+    "マイナポータル",
+    "マイナンバー",
+    "digital agency",
+    "デジタル庁",
+    "e-gov",
+    "egov",
+    "nenkin",
+    "日本年金機構",
+    "nenkin net",
+    "ねんきんネット",
+    "hellowork",
+    "ハローワーク",
+    "jasso",
+    "日本学生支援機構",
+    "nhk",
+    "nhk plus",
+    "nhkプラス",
+    "jaf",
+
+    // ----------------------------------------------------------
+    // 求人・人材
+    // ----------------------------------------------------------
+    "recruit",
+    "リクルート",
+    "doda",
+    "mynavi",
+    "マイナビ",
+    "rikunabi",
+    "リクナビ",
+    "indeed",
+    "wantedly",
+
+    // ----------------------------------------------------------
+    // 飲食・美容
+    // ----------------------------------------------------------
+    "hotpepper",
+    "ホットペッパー",
+    "hot pepper beauty",
+    "ホットペッパービューティー",
+    "gurunavi",
+    "ぐるなび",
+    "tabelog",
+    "食べログ",
+
+    // ----------------------------------------------------------
+    // SaaS・業務サービス
+    // ----------------------------------------------------------
+    "freee",
+    "freee会計",
+    "money forward",
+    "マネーフォワード",
+    "money forward me",
+    "マネーフォワードme",
+    "yayoi",
+    "弥生",
+    "cybozu",
+    "サイボウズ",
+    "kintone",
+    "salesforce",
+    "slack",
+    "zoom",
+    "dropbox",
+    "box.com",
+    "adobe",
+    "adobe creative cloud",
+    "canva",
+
+    // ----------------------------------------------------------
+    // その他国内Webサービス
+    // ----------------------------------------------------------
+    "dmm",
+    "dmm.com",
+    "pixiv",
+    "fc2",
+    "note.com",
+    "mixi"
   ],
 
-  // 「本物はどっち？」用に、正規サイトのスクリーンショットも同じ実行で保存します。
-  // reports/phishing_observation/<実行日時>/references/ に出力されます。
+  // ============================================================
+  // ページ上のブランド検出語
+  // ============================================================
+  // ページタイトルや本文に含まれていた場合にブランド判定へ利用します．
+  // target_termsよりも，画面上に実際に表示されやすいブランド名を中心にしています．
+  "brand_terms": [
+    "Amazon",
+    "Amazon.co.jp",
+    "Amazon Prime",
+
+    "Apple",
+    "Apple ID",
+    "Apple Account",
+    "iCloud",
+    "App Store",
+
+    "Google",
+    "Google アカウント",
+    "Gmail",
+    "YouTube",
+
+    "Microsoft",
+    "Microsoft アカウント",
+    "Microsoft 365",
+    "Office 365",
+    "Outlook",
+    "OneDrive",
+
+    "NTTドコモ",
+    "docomo",
+    "ドコモ",
+    "dアカウント",
+    "d account",
+    "dカード",
+    "d払い",
+    "ahamo",
+
+    "KDDI",
+    "au ID",
+    "au PAY",
+    "au PAY カード",
+    "auじぶん銀行",
+    "UQ mobile",
+    "povo",
+
+    "SoftBank",
+    "ソフトバンク",
+    "ワイモバイル",
+    "LINEMO",
+
+    "楽天",
+    "楽天市場",
+    "楽天カード",
+    "楽天銀行",
+    "楽天証券",
+    "楽天ペイ",
+    "楽天モバイル",
+    "楽天トラベル",
+
+    "JCB",
+    "Visa",
+    "Mastercard",
+    "American Express",
+    "アメリカン・エキスプレス",
+    "ダイナースクラブ",
+    "セゾンカード",
+    "エポスカード",
+    "イオンカード",
+    "オリコ",
+    "三井住友カード",
+    "Vpass",
+    "Olive",
+    "dカード",
+    "au PAY カード",
+    "PayPayカード",
+    "Paidy",
+    "ペイディ",
+    "ビューカード",
+
+    "三菱UFJ銀行",
+    "MUFG",
+    "三井住友銀行",
+    "SMBC",
+    "みずほ銀行",
+    "りそな銀行",
+    "ゆうちょ銀行",
+    "楽天銀行",
+    "PayPay銀行",
+    "住信SBIネット銀行",
+    "SBI新生銀行",
+    "ソニー銀行",
+    "auじぶん銀行",
+    "イオン銀行",
+    "セブン銀行",
+
+    "SBI証券",
+    "楽天証券",
+    "野村證券",
+    "野村証券",
+    "大和証券",
+    "松井証券",
+    "マネックス証券",
+    "SMBC日興証券",
+
+    "PayPay",
+    "メルペイ",
+    "PayPal",
+    "nanaco",
+    "WAON",
+    "FamiPay",
+
+    "Coincheck",
+    "コインチェック",
+    "bitFlyer",
+    "bitbank",
+    "GMOコイン",
+
+    "メルカリ",
+    "Mercari",
+    "メルカリShops",
+    "ラクマ",
+    "Yahoo!ショッピング",
+    "Yahoo!オークション",
+    "ヤフオク",
+    "ZOZOTOWN",
+    "Qoo10",
+
+    "ヨドバシカメラ",
+    "ビックカメラ",
+    "ヤマダデンキ",
+    "エディオン",
+    "ジョーシン",
+    "ノジマ",
+    "ニトリ",
+    "ユニクロ",
+    "無印良品",
+
+    "日本郵便",
+    "郵便局",
+    "ゆうパック",
+    "ヤマト運輸",
+    "クロネコヤマト",
+    "佐川急便",
+
+    "ETC利用照会サービス",
+
+    "えきねっと",
+    "JR東日本",
+    "JR東海",
+    "JR西日本",
+    "Suica",
+    "モバイルSuica",
+    "PASMO",
+    "モバイルPASMO",
+    "ICOCA",
+    "Smart EX",
+    "WESTER",
+
+    "ANA",
+    "全日空",
+    "ANAマイレージクラブ",
+    "JAL",
+    "日本航空",
+    "JALマイレージバンク",
+    "Peach",
+    "Jetstar",
+
+    "Booking.com",
+    "Agoda",
+    "Airbnb",
+    "Expedia",
+    "じゃらん",
+    "楽天トラベル",
+    "一休.com",
+    "JTB",
+
+    "東京電力",
+    "TEPCO",
+    "関西電力",
+    "中部電力",
+    "東北電力",
+    "九州電力",
+    "北海道電力",
+    "中国電力",
+    "四国電力",
+    "東京ガス",
+    "大阪ガス",
+
+    "OCN",
+    "NURO 光",
+    "BIGLOBE",
+    "@nifty",
+    "So-net",
+    "J:COM",
+
+    "Yahoo! JAPAN",
+    "Yahoo!メール",
+    "LINE",
+
+    "Facebook",
+    "Instagram",
+    "WhatsApp",
+    "TikTok",
+    "Discord",
+
+    "Netflix",
+    "Disney+",
+    "Hulu",
+    "U-NEXT",
+    "ABEMA",
+    "WOWOW",
+    "TVer",
+    "DAZN",
+    "Spotify",
+
+    "Nintendo",
+    "ニンテンドーアカウント",
+    "PlayStation",
+    "PlayStation Network",
+    "Steam",
+    "Epic Games",
+    "Square Enix",
+    "スクウェア・エニックス",
+    "SEGA",
+    "バンダイナムコ",
+    "CAPCOM",
+    "KONAMI",
+    "ポケモン",
+
+    "チケットぴあ",
+    "イープラス",
+    "ローチケ",
+
+    "国税庁",
+    "e-Tax",
+    "マイナポータル",
+    "マイナンバー",
+    "デジタル庁",
+    "e-Gov",
+    "日本年金機構",
+    "ねんきんネット",
+    "ハローワーク",
+    "日本学生支援機構",
+    "NHK",
+
+    "リクルート",
+    "マイナビ",
+    "リクナビ",
+    "Indeed",
+    "doda",
+
+    "ホットペッパー",
+    "ホットペッパービューティー",
+    "食べログ",
+    "ぐるなび",
+
+    "freee",
+    "マネーフォワード",
+    "弥生",
+    "サイボウズ",
+    "kintone",
+    "Salesforce",
+    "Slack",
+    "Zoom",
+    "Dropbox",
+    "Box",
+    "Adobe",
+    "Canva"
+  ],
+
+  // ============================================================
+  // 正規サイト
+  // ============================================================
+  // 「本物はどっち？」の比較用に，正規サイトのスクリーンショットも保存します．
+  //
+  // reports/phishing_observation/<実行日時>/references/
+  //
+  // 毎回すべて取得すると処理時間が増えるため，
+  // 比較対象として特に分かりやすい主要ブランドに絞っています．
   "reference_sites": {
     "docomo": "https://www.docomo.ne.jp/",
     "daccount": "https://id.smt.docomo.ne.jp/",
     "ahamo": "https://ahamo.com/",
+    "d-card": "https://dcard.docomo.ne.jp/",
+
+    "rakuten": "https://www.rakuten.co.jp/",
     "rakuten-card": "https://www.rakuten-card.co.jp/",
-    "jcb": "https://www.jcb.co.jp/",
+
     "amazon-japan": "https://www.amazon.co.jp/",
-    "paypay": "https://paypay.ne.jp/",
     "mercari": "https://jp.mercari.com/",
-    "japanpost": "https://www.post.japanpost.jp/",
+    "yahoo-japan": "https://www.yahoo.co.jp/",
+
+    "jcb": "https://www.jcb.co.jp/",
+    "smbc-card": "https://www.smbc-card.com/",
+    "saison-card": "https://www.saisoncard.co.jp/",
+    "epos-card": "https://www.eposcard.co.jp/",
+    "aeon-card": "https://www.aeon.co.jp/",
+    "paidy": "https://paidy.com/",
+
+    "paypay": "https://paypay.ne.jp/",
+
     "mufg": "https://www.bk.mufg.jp/",
     "smbc": "https://www.smbc.co.jp/",
+    "mizuho": "https://www.mizuhobank.co.jp/",
+    "yucho": "https://www.jp-bank.japanpost.jp/",
+
+    "sbi-securities": "https://www.sbisec.co.jp/",
+    "rakuten-securities": "https://www.rakuten-sec.co.jp/",
+    "nomura": "https://www.nomura.co.jp/",
+    "daiwa": "https://www.daiwa.jp/",
+
+    "japanpost": "https://www.post.japanpost.jp/",
+    "yamato": "https://www.kuronekoyamato.co.jp/",
+    "sagawa": "https://www.sagawa-exp.co.jp/",
+
+    "ekinet": "https://www.eki-net.com/",
+    "mobile-suica": "https://www.jreast.co.jp/mobilesuica/",
+    "smart-ex": "https://smart-ex.jp/",
+
+    "ana": "https://www.ana.co.jp/",
+    "jal": "https://www.jal.co.jp/",
+
+    "tepco": "https://www.tepco.co.jp/",
+    "tokyo-gas": "https://www.tokyo-gas.co.jp/",
+
     "line": "https://line.me/ja/",
-    "yahoo-japan": "https://www.yahoo.co.jp/"
+    "netflix": "https://www.netflix.com/jp/",
+    "apple": "https://www.apple.com/jp/",
+    "microsoft": "https://www.microsoft.com/ja-jp/"
   }
 }

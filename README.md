@@ -57,9 +57,10 @@ docker compose run --rm --build phishing_observer
 
 ## 「本物はどっち？」用の比較画像
 
-`phishing_capture/config.json` の `reference_sites` に正規サイトを指定すると、偽サイト候補とは別に正規サイトのスクリーンショットも保存します。
+`phishing_capture/config.json` の `capture_reference_sites` を `true` にして、`reference_sites` に正規サイトを指定したときだけ、偽サイト候補とは別に正規サイトのスクリーンショットを保存します。
 
 ```json
+"capture_reference_sites": true,
 "reference_sites": {
   "docomo": "https://www.docomo.ne.jp/",
   "daccount": "https://id.smt.docomo.ne.jp/",

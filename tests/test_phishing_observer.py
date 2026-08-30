@@ -3,13 +3,18 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
 from phishfinder.phishing_observer import (
     FeedConfig,
     PhishingObserverConfig,
     UrlRecord,
+    canonical_url_key,
+    collect_urls,
     detect_brand_terms,
+    has_demo_intent,
     is_blank_screenshot,
+    is_public_dev_host,
     is_verified_online_or_unknown,
     is_http_success_status,
     is_reference_host,
@@ -18,6 +23,9 @@ from phishfinder.phishing_observer import (
     record_matches_target_terms,
     row_is_http_success,
     safe_name,
+    screenshot_base_name,
+    should_save_observation_screenshot,
+    should_reject_after_observation,
     suggest_label,
     url_matches_target_terms,
 )
@@ -69,6 +77,55 @@ class PhishingObserverTests(unittest.TestCase):
                 ("d account",),
             )
         )
+
+    def test_canonical_url_key_deduplicates_www_and_trailing_slash(self) -> None:
+        self.assertEqual(
+            canonical_url_key("https://www.example.com/login/"),
+            canonical_url_key("http://example.com/login"),
+        )
+
+    def test_demo_intent_detects_clone_and_sample_urls(self) -> None:
+        self.assertTrue(has_demo_intent("https://user.github.io/amazon-clone/"))
+        self.assertTrue(has_demo_intent("https://example.com/netflix-homepage"))
+        self.assertTrue(has_demo_intent("https://example.com/sample/login"))
+        self.assertFalse(has_demo_intent("https://secure-example.com/login"))
+
+    def test_public_dev_host_detects_common_static_hosts(self) -> None:
+        self.assertTrue(is_public_dev_host("alice.github.io"))
+        self.assertTrue(is_public_dev_host("demo-login.vercel.app"))
+        self.assertTrue(is_public_dev_host("brand.netlify.app"))
+        self.assertFalse(is_public_dev_host("example.com"))
+
+    def test_collect_urls_skips_duplicates_and_demo_urls(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            manual_path = Path(temp_dir) / "manual_urls.txt"
+            manual_path.write_text(
+                "\n".join(
+                    [
+                        "https://www.example.com/login/",
+                        "http://example.com/login",
+                        "https://user.github.io/amazon-clone/",
+                        "https://real.example/account",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            config = PhishingObserverConfig(
+                feeds=(),
+                manual_urls_path=manual_path,
+                target_terms=(),
+                progress=False,
+            )
+
+            with patch("phishfinder.phishing_observer.is_public_host", return_value=True):
+                records, warnings = collect_urls(config)
+
+        self.assertEqual(
+            [record.url for record in records],
+            ["https://www.example.com/login/", "https://real.example/account"],
+        )
+        self.assertTrue(any("duplicate" in warning for warning in warnings))
+        self.assertTrue(any("demo" in warning for warning in warnings))
 
     def test_record_matches_target_terms_uses_reported_target(self) -> None:
         record = UrlRecord(
@@ -125,7 +182,79 @@ class PhishingObserverTests(unittest.TestCase):
         )
 
         self.assertTrue(is_reference_host("www.bk.mufg.jp", config))
+        self.assertTrue(is_reference_host("login.www.bk.mufg.jp", config))
         self.assertFalse(is_reference_host("fake-bk.mufg.example", config))
+
+    def test_candidate_screenshot_skips_final_reference_site(self) -> None:
+        config = PhishingObserverConfig(
+            feeds=(),
+            reference_sites={"mufg": "https://www.bk.mufg.jp/"},
+        )
+
+        self.assertFalse(
+            should_save_observation_screenshot(
+                200,
+                "https://www.bk.mufg.jp/",
+                config,
+            )
+        )
+        self.assertTrue(
+            should_save_observation_screenshot(
+                200,
+                "https://www.bk.mufg.jp/",
+                config,
+                allow_reference_screenshot=True,
+            )
+        )
+
+    def test_observation_rejects_dev_host_without_password_input(self) -> None:
+        should_reject, label = should_reject_after_observation(
+            {
+                "url": "https://alice.github.io/amazon-login/",
+                "final_url": "https://alice.github.io/amazon-login/",
+                "input_count": 1,
+                "password_input_count": 0,
+                "form_count": 0,
+            }
+        )
+
+        self.assertTrue(should_reject)
+        self.assertEqual("\u30c7\u30e2\u30fb\u6a21\u5199\u9664\u5916", label)
+
+    def test_observation_rejects_informational_brand_page(self) -> None:
+        should_reject, label = should_reject_after_observation(
+            {
+                "url": "https://example.com/amazon-fan-blog/",
+                "final_url": "https://example.com/amazon-fan-blog/",
+                "input_count": 0,
+                "password_input_count": 0,
+                "form_count": 0,
+                "matched_brand_terms": "amazon",
+                "is_likely_informational_page": True,
+            }
+        )
+
+        self.assertTrue(should_reject)
+        self.assertEqual("\u8a8d\u8a3c\u60c5\u5831\u8981\u6c42\u306a\u3057", label)
+
+    def test_screenshot_base_name_contains_host_path_and_hash(self) -> None:
+        name = screenshot_base_name(
+            7,
+            "https://example.com/login/account",
+            "https://example.com/login/account",
+        )
+
+        self.assertTrue(name.startswith("007__example.com__login_account__"))
+        self.assertLessEqual(len(name), 170)
+
+    def test_screenshot_base_name_mentions_redirect_host(self) -> None:
+        name = screenshot_base_name(
+            7,
+            "https://short.example/start",
+            "https://final.example/login",
+        )
+
+        self.assertIn("__short.example__to__final.example__", name)
 
     def test_blank_screenshot_detection(self) -> None:
         with TemporaryDirectory() as temp_dir:
@@ -176,6 +305,8 @@ class PhishingObserverTests(unittest.TestCase):
                   "wait_for_stable_body_ms": 0,
                   "require_verified_online": true,
                   "require_http_success": true,
+                  "capture_reference_sites": true,
+                  "progress": false,
                   "exclude_reference_hosts": false,
                   "manual_urls_path": "phishing_capture/manual_urls.txt",
                   "feeds": [
@@ -200,6 +331,8 @@ class PhishingObserverTests(unittest.TestCase):
 
         self.assertEqual(config.max_urls, 1)
         self.assertEqual(config.max_checked_urls, 7)
+        self.assertTrue(config.capture_reference_sites)
+        self.assertFalse(config.progress)
         self.assertFalse(config.wait_until_network_idle)
         self.assertEqual(config.wait_for_stable_body_ms, 0)
         self.assertTrue(config.require_verified_online)
@@ -220,6 +353,7 @@ class PhishingObserverTests(unittest.TestCase):
         self.assertEqual(config.brand_terms, ("rakuten",))
         self.assertEqual(config.target_terms, ("docomo",))
         self.assertEqual(config.reference_sites, {"docomo": "https://www.docomo.ne.jp/"})
+        self.assertFalse(PhishingObserverConfig(feeds=()).capture_reference_sites)
 
 
 if __name__ == "__main__":

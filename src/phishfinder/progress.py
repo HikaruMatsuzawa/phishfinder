@@ -11,7 +11,7 @@ def progress_bar(
     items: Iterable[T],
     *,
     desc: str,
-    unit: str = "件",
+    unit: str = "\u4ef6",
     enabled: bool = True,
 ) -> Iterable[T]:
     if not enabled:

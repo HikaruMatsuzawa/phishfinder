@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import csv
 import hashlib
@@ -16,12 +16,40 @@ from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
 from .config import strip_json_comments
+from .progress import progress_bar
 
 LABEL_REVIEW = "\u78ba\u8a8d\u5bfe\u8c61"
 LABEL_PHISHING_SUSPECTED = "\u30d5\u30a3\u30c3\u30b7\u30f3\u30b0\u7591\u3044"
 LABEL_BRAND = "\u30d6\u30e9\u30f3\u30c9\u540d\u3042\u308a"
 LABEL_FORM = "\u30d5\u30a9\u30fc\u30e0\u3042\u308a"
 LABEL_FAILED = "\u53d6\u5f97\u5931\u6557"
+LABEL_REFERENCE_SKIPPED = "\u6b63\u898f\u30b5\u30a4\u30c8\u9664\u5916"
+LABEL_DEMO_SKIPPED = "\u30c7\u30e2\u30fb\u6a21\u5199\u9664\u5916"
+LABEL_NO_CREDENTIAL_REQUEST = "\u8a8d\u8a3c\u60c5\u5831\u8981\u6c42\u306a\u3057"
+
+DEMO_INDICATOR_TERMS = (
+    "clone",
+    "demo",
+    "portfolio",
+    "tutorial",
+    "practice",
+    "sample",
+    "project",
+    "homepage",
+    "frontend",
+    "ui",
+)
+PUBLIC_DEV_HOST_SUFFIXES = ("github.io", "vercel.app", "netlify.app")
+INFORMATIONAL_SITE_TERMS = (
+    "blog",
+    "fan",
+    "fansite",
+    "community",
+    "forum",
+    "wiki",
+    "news",
+    "article",
+)
 
 
 @dataclass(frozen=True)
@@ -55,6 +83,8 @@ class PhishingObserverConfig:
     wait_for_stable_body_ms: int = 1200
     javascript_enabled: bool = True
     save_html: bool = False
+    capture_reference_sites: bool = False
+    progress: bool = True
     require_verified_online: bool = True
     require_http_success: bool = True
     exclude_reference_hosts: bool = True
@@ -113,6 +143,10 @@ def load_observer_config(path: Path) -> PhishingObserverConfig:
         ),
         javascript_enabled=bool(raw.get("javascript_enabled", defaults.javascript_enabled)),
         save_html=bool(raw.get("save_html", defaults.save_html)),
+        capture_reference_sites=bool(
+            raw.get("capture_reference_sites", defaults.capture_reference_sites)
+        ),
+        progress=bool(raw.get("progress", defaults.progress)),
         require_verified_online=bool(
             raw.get("require_verified_online", defaults.require_verified_online)
         ),
@@ -180,6 +214,89 @@ def safe_name(value: str, fallback: str = "site") -> str:
     return (cleaned or fallback)[:120]
 
 
+def canonical_url_key(url: str) -> str:
+    parsed = urlparse(url)
+    host = (parsed.hostname or "").lower().strip(".")
+    if host.startswith("www."):
+        host = host[4:]
+    path = re.sub(r"/+", "/", parsed.path or "/").rstrip("/") or "/"
+    query = parsed.query.lower()
+    return f"{host}{path}?{query}" if query else f"{host}{path}"
+
+
+def url_text_tokens(url: str) -> set[str]:
+    parsed = urlparse(url)
+    text = " ".join([parsed.hostname or "", parsed.path or "", parsed.query or ""])
+    return {
+        token
+        for token in re.split(r"[^a-z0-9]+", text.lower())
+        if token
+    }
+
+
+def has_demo_intent(url: str) -> bool:
+    if normalize_url(url) is None:
+        tokens = {
+            token
+            for token in re.split(r"[^a-z0-9]+", url.lower())
+            if token
+        }
+    else:
+        tokens = url_text_tokens(url)
+    return any(term in tokens for term in DEMO_INDICATOR_TERMS)
+
+
+def is_public_dev_host(hostname: str) -> bool:
+    host = hostname.lower().strip(".")
+    return any(host == suffix or host.endswith(f".{suffix}") for suffix in PUBLIC_DEV_HOST_SUFFIXES)
+
+
+def is_likely_informational_page(
+    url: str,
+    title: str,
+    body_text: str,
+    form_count: int,
+    password_count: int,
+) -> bool:
+    if password_count > 0 or form_count > 0:
+        return False
+    text = " ".join([url, title, body_text[:5000]]).lower()
+    return any(term in text for term in INFORMATIONAL_SITE_TERMS)
+
+
+def should_reject_after_observation(row: dict[str, Any]) -> tuple[bool, str]:
+    url = str(row.get("url") or "")
+    final_url = str(row.get("final_url") or "")
+    parsed = urlparse(final_url or url)
+    host = parsed.hostname or ""
+    form_count = int(row.get("form_count") or 0)
+    password_count = int(row.get("password_input_count") or 0)
+    input_count = int(row.get("input_count") or 0)
+
+    if has_demo_intent(url) or has_demo_intent(final_url):
+        return True, LABEL_DEMO_SKIPPED
+    if row.get("is_likely_informational_page"):
+        return True, LABEL_NO_CREDENTIAL_REQUEST
+    if is_public_dev_host(host) and password_count == 0:
+        return True, LABEL_DEMO_SKIPPED
+    if input_count == 0 and not row.get("matched_brand_terms"):
+        return True, LABEL_NO_CREDENTIAL_REQUEST
+    return False, ""
+
+
+def screenshot_base_name(index: int, url: str, final_url: str = "") -> str:
+    parsed = urlparse(final_url or url)
+    original = urlparse(url)
+    host = safe_name(parsed.hostname or original.hostname or "unknown", fallback="unknown")
+    path_hint = safe_name(parsed.path.strip("/") or "root", fallback="root")[:55]
+    digest = hashlib.sha1(url.encode("utf-8")).hexdigest()[:10]
+    prefix = f"{index:03d}" if index else "reference"
+    if final_url and (parsed.hostname or "") != (original.hostname or ""):
+        original_host = safe_name(original.hostname or "unknown", fallback="unknown")[:35]
+        return f"{prefix}__{original_host}__to__{host}__{path_hint}__{digest}"[:170]
+    return f"{prefix}__{host}__{path_hint}__{digest}"[:170]
+
+
 def fetch_feed_records(feed: FeedConfig, timeout_seconds: float) -> list[UrlRecord]:
     if not feed.enabled:
         return []
@@ -218,7 +335,13 @@ def collect_urls(config: PhishingObserverConfig) -> tuple[list[UrlRecord], list[
     candidates: list[UrlRecord] = []
     warnings: list[str] = []
 
-    for feed in config.feeds:
+    enabled_feeds = [feed for feed in config.feeds if feed.enabled]
+    for feed in progress_bar(
+        enabled_feeds,
+        desc="\u30d5\u30a3\u30fc\u30c9\u53d6\u5f97",
+        unit="\u4ef6",
+        enabled=config.progress and bool(enabled_feeds),
+    ):
         try:
             candidates.extend(fetch_feed_records(feed, config.timeout_seconds))
         except (OSError, URLError, TimeoutError, ValueError) as exc:
@@ -228,9 +351,22 @@ def collect_urls(config: PhishingObserverConfig) -> tuple[list[UrlRecord], list[
 
     records: list[UrlRecord] = []
     seen: set[str] = set()
-    for candidate in candidates:
+    candidate_iterable = progress_bar(
+        candidates,
+        desc="URL\u5019\u88dc\u78ba\u8a8d",
+        unit="\u4ef6",
+        enabled=config.progress and bool(candidates),
+    )
+    for candidate in candidate_iterable:
         normalized = normalize_url(candidate.url)
-        if normalized is None or normalized in seen:
+        if normalized is None:
+            continue
+        key = canonical_url_key(normalized)
+        if key in seen:
+            warnings.append(f"{normalized}: skipped because it is a duplicate of an already queued URL.")
+            continue
+        if has_demo_intent(normalized):
+            warnings.append(f"{normalized}: skipped because the URL looks like a demo, clone, or practice page.")
             continue
         candidate = UrlRecord(
             url=normalized,
@@ -252,7 +388,7 @@ def collect_urls(config: PhishingObserverConfig) -> tuple[list[UrlRecord], list[
         if not is_public_host(parsed.hostname):
             warnings.append(f"{normalized}: skipped because host did not resolve to public IPs.")
             continue
-        seen.add(normalized)
+        seen.add(key)
         records.append(candidate)
         if len(records) >= config.max_checked_urls:
             break
@@ -309,7 +445,7 @@ def is_reference_host(hostname: str, config: PhishingObserverConfig) -> bool:
     for url in references.values():
         parsed = urlparse(url)
         reference_host = (parsed.hostname or "").lower().strip(".")
-        if reference_host and host == reference_host:
+        if reference_host and (host == reference_host or host.endswith(f".{reference_host}")):
             return True
     return False
 
@@ -323,6 +459,8 @@ def detect_brand_terms(text: str, terms: tuple[str, ...]) -> tuple[str, ...]:
 
 
 def observe_urls(config: PhishingObserverConfig) -> Path:
+    print("\u516c\u958b\u30d5\u30a3\u30c3\u30b7\u30f3\u30b0URL\u306e\u89b3\u5bdf\u3092\u958b\u59cb\u3057\u307e\u3059\u3002", flush=True)
+    print("\u30d5\u30a3\u30fc\u30c9\u3068\u624b\u52d5URL\u304b\u3089\u5019\u88dc\u3092\u53ce\u96c6\u4e2d\u3067\u3059\u3002", flush=True)
     records, warnings = collect_urls(config)
     run_dir = timestamped_output_dir(config.output_dir)
     screenshot_dir = run_dir / "screenshots"
@@ -331,8 +469,9 @@ def observe_urls(config: PhishingObserverConfig) -> Path:
     screenshot_dir.mkdir(parents=True, exist_ok=True)
     if config.save_html:
         html_dir.mkdir(parents=True, exist_ok=True)
+    if config.capture_reference_sites:
+        reference_dir.mkdir(parents=True, exist_ok=True)
 
-    print("\u516c\u958b\u30d5\u30a3\u30c3\u30b7\u30f3\u30b0URL\u306e\u89b3\u5bdf\u3092\u958b\u59cb\u3057\u307e\u3059\u3002")
     print(f"\u53d6\u5f97URL\u6570: {len(records)} \u4ef6")
     print(f"JavaScript: {'ON' if config.javascript_enabled else 'OFF'}")
     print(f"\u51fa\u529b\u5148: {run_dir}")
@@ -349,11 +488,20 @@ def observe_urls(config: PhishingObserverConfig) -> Path:
     except ImportError as exc:
         raise RuntimeError("playwright is required for screenshots.") from exc
 
+    print("Playwright Chromium\u3092\u8d77\u52d5\u4e2d\u3067\u3059\u3002", flush=True)
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(headless=True)
         try:
-            reference_rows = capture_reference_sites(browser, config, reference_dir)
-            for index, record in enumerate(records, start=1):
+            reference_rows: list[dict[str, Any]] = []
+            if config.capture_reference_sites:
+                reference_rows = capture_reference_sites(browser, config, reference_dir)
+            record_iterable = progress_bar(
+                records,
+                desc="\u30b5\u30a4\u30c8\u89b3\u5bdf",
+                unit="\u4ef6",
+                enabled=config.progress and bool(records),
+            )
+            for index, record in enumerate(record_iterable, start=1):
                 print(f"[{index}/{len(records)}] {record.url}")
                 started = time.monotonic()
                 row = _observe_one(browser, config, record.url, screenshot_dir, html_dir, index)
@@ -362,8 +510,20 @@ def observe_urls(config: PhishingObserverConfig) -> Path:
                 row["verified"] = record.verified
                 row["online"] = record.online
                 row["elapsed_seconds"] = round(time.monotonic() - started, 2)
-                if config.require_http_success and not row_is_http_success(row):
+                should_reject, reject_label = should_reject_after_observation(row)
+                has_successful_capture = row_is_http_success(row)
+                if row.get("suggested_label") == LABEL_REFERENCE_SKIPPED:
+                    row["review_priority"] = "skip"
+                    rejected_rows.append(row)
+                elif config.require_http_success and not has_successful_capture:
                     row["suggested_label"] = "\u751f\u5b58\u78ba\u8a8d\u5931\u6557"
+                    row["review_priority"] = "skip"
+                    rejected_rows.append(row)
+                elif should_reject:
+                    if row.get("screenshot_path"):
+                        Path(str(row["screenshot_path"])).unlink(missing_ok=True)
+                        row["screenshot_path"] = ""
+                    row["suggested_label"] = reject_label
                     row["review_priority"] = "skip"
                     rejected_rows.append(row)
                 else:
@@ -398,12 +558,25 @@ def capture_reference_sites(
     reference_dir.mkdir(parents=True, exist_ok=True)
     print(f"\u6b63\u898f\u30b5\u30a4\u30c8\u6bd4\u8f03\u7528\u30b9\u30af\u30b7\u30e7: {len(references)} \u4ef6")
     rows: list[dict[str, Any]] = []
-    for name, url in references.items():
+    for name, url in progress_bar(
+        list(references.items()),
+        desc="\u6b63\u898f\u30b5\u30a4\u30c8\u64ae\u5f71",
+        unit="\u4ef6",
+        enabled=config.progress and bool(references),
+    ):
         normalized = normalize_url(url)
         if normalized is None:
             rows.append({"name": name, "url": url, "screenshot_path": "", "error": "invalid URL"})
             continue
-        row = _observe_one(browser, config, normalized, reference_dir, Path(), 0)
+        row = _observe_one(
+            browser,
+            config,
+            normalized,
+            reference_dir,
+            Path(),
+            0,
+            allow_reference_screenshot=True,
+        )
         rows.append(
             {
                 "name": name,
@@ -423,15 +596,12 @@ def _observe_one(
     screenshot_dir: Path,
     html_dir: Path,
     index: int,
+    allow_reference_screenshot: bool = False,
 ) -> dict[str, Any]:
     from playwright.sync_api import Error, TimeoutError as PlaywrightTimeoutError
 
     parsed = urlparse(url)
     host = parsed.hostname or "unknown"
-    digest = hashlib.sha1(url.encode("utf-8")).hexdigest()[:10]
-    base_name = f"{index:03d}_{safe_name(host)}_{digest}" if index else safe_name(host)
-    screenshot_path = screenshot_dir / f"{base_name}.png"
-    html_path = html_dir / f"{base_name}.html"
 
     context = browser.new_context(
         java_script_enabled=config.javascript_enabled,
@@ -452,16 +622,29 @@ def _observe_one(
 
         title = page.title()
         final_url = page.url
+        final_host = urlparse(final_url).hostname or ""
+        base_name = screenshot_base_name(index, url, final_url)
+        screenshot_path = screenshot_dir / f"{base_name}.png"
+        html_path = html_dir / f"{base_name}.html"
         body_text = page.locator("body").inner_text(timeout=1000)[:20_000]
         html = page.content()
         form_count = page.locator("form").count()
         password_count = page.locator("input[type='password']").count()
         input_count = page.locator("input").count()
         matched_terms = detect_brand_terms(" ".join([url, final_url, title, body_text]), config.brand_terms)
+        is_likely_informational = is_likely_informational_page(
+            final_url,
+            title,
+            body_text,
+            form_count,
+            password_count,
+        )
 
-        should_save_screenshot = (
-            (not config.require_http_success or is_http_success_status(status_code))
-            and normalize_url(final_url) is not None
+        should_save_screenshot = should_save_observation_screenshot(
+            status_code,
+            final_url,
+            config,
+            allow_reference_screenshot=allow_reference_screenshot,
         )
         saved_screenshot_path = ""
         if should_save_screenshot:
@@ -478,29 +661,41 @@ def _observe_one(
         return {
             "url": url,
             "final_url": final_url,
+            "canonical_url_key": canonical_url_key(final_url),
             "host": host,
+            "final_host": final_host,
             "status_code": status_code,
             "title": title,
             "form_count": form_count,
             "input_count": input_count,
             "password_input_count": password_count,
             "matched_brand_terms": ";".join(matched_terms),
+            "is_likely_informational_page": is_likely_informational,
             "screenshot_path": saved_screenshot_path,
             "html_path": saved_html_path,
-            "suggested_label": suggest_label(form_count, password_count, matched_terms),
+            "suggested_label": (
+                suggest_label(form_count, password_count, matched_terms)
+                if should_save_screenshot
+                else LABEL_REFERENCE_SKIPPED
+                if final_url_is_reference_site(final_url, config)
+                else LABEL_FAILED
+            ),
             "error": "",
         }
     except (Error, PlaywrightTimeoutError, OSError) as exc:
         return {
             "url": url,
             "final_url": page.url if not page.is_closed() else "",
+            "canonical_url_key": canonical_url_key(url),
             "host": host,
+            "final_host": urlparse(page.url).hostname if not page.is_closed() else "",
             "status_code": None,
             "title": "",
             "form_count": 0,
             "input_count": 0,
             "password_input_count": 0,
             "matched_brand_terms": "",
+            "is_likely_informational_page": False,
             "screenshot_path": "",
             "html_path": "",
             "suggested_label": LABEL_FAILED,
@@ -552,6 +747,31 @@ def suggest_label(form_count: int, password_count: int, matched_terms: tuple[str
     return LABEL_REVIEW
 
 
+def should_save_observation_screenshot(
+    status_code: Any,
+    final_url: str,
+    config: PhishingObserverConfig,
+    *,
+    allow_reference_screenshot: bool = False,
+) -> bool:
+    if config.require_http_success and not is_http_success_status(status_code):
+        return False
+    if normalize_url(final_url) is None:
+        return False
+    if (
+        config.exclude_reference_hosts
+        and not allow_reference_screenshot
+        and final_url_is_reference_site(final_url, config)
+    ):
+        return False
+    return True
+
+
+def final_url_is_reference_site(final_url: str, config: PhishingObserverConfig) -> bool:
+    parsed = urlparse(final_url)
+    return bool(parsed.hostname and is_reference_host(parsed.hostname, config))
+
+
 def write_outputs(
     run_dir: Path,
     rows: list[dict[str, Any]],
@@ -577,7 +797,9 @@ def write_outputs(
     fieldnames = [
         "url",
         "final_url",
+        "canonical_url_key",
         "host",
+        "final_host",
         "source",
         "reported_target",
         "verified",
@@ -588,6 +810,7 @@ def write_outputs(
         "input_count",
         "password_input_count",
         "matched_brand_terms",
+        "is_likely_informational_page",
         "screenshot_path",
         "suggested_label",
         "review_priority",
