@@ -16,3 +16,19 @@ services:
     entrypoint:
       - python
       - run.py
+  phishing_observer:
+    build:
+      context: .
+    image: phishfinder:local
+    init: true
+    ipc: host
+    working_dir: /app
+    user: pwuser
+    security_opt:
+      - seccomp=./seccomp_profile.json
+    volumes:
+      - ./phishing_capture:/app/phishing_capture
+      - ./reports:/app/reports
+    entrypoint:
+      - python
+      - tools/observe_phishing_sites.py

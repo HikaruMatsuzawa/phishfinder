@@ -1,0 +1,3 @@
+# 公開フィードとは別に観察したいURLを1行ずつ書きます。
+# 例:
+# https://example.invalid/login

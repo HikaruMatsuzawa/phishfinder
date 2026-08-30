@@ -1,0 +1,226 @@
+﻿{
+  // 公開フィッシングURLの取得元です。
+  // OpenPhishは公開テキストフィード、PhishTankはCSVフィードです。
+  // 取得できないフィードがあっても、他のフィードやmanual_urls.txtで処理を続けます。
+  "feeds": [
+    {
+      "name": "openphish",
+      "enabled": true,
+      "url": "https://openphish.com/feed.txt",
+      "format": "text"
+    },
+    {
+      "name": "phishtank",
+      "enabled": true,
+      "url": "https://data.phishtank.com/data/online-valid.csv",
+      "format": "csv",
+      "url_column": "url"
+    }
+  ],
+
+  // フィードとは別に、自分で観察したいURLを書くファイルです。
+  // 1行に1URLを書きます。#で始まる行は無視されます。
+  "manual_urls_path": "phishing_capture/manual_urls.txt",
+
+  // 1回の実行で観察するURL数です。
+  // 200〜399でスクショが取れたものだけを、この件数までreview.csvに残します。
+  "max_urls": 20,
+
+  // 発表用候補を集めるために、最大で何件まで公開DBの候補を確認するかです。
+  // ドコモ系のように数が少ない条件では、max_urlsより大きめにしておきます。
+  "max_checked_urls": 500,
+
+  // 出力先です。実行ごとに日時つきサブフォルダを作ります。
+  "output_dir": "reports/phishing_observation",
+
+  // 1サイトあたりの最大待ち時間です。長くすると成功率は上がりますが、全体の実行時間も増えます。
+  "timeout_seconds": 6,
+
+  // DOM読み込み後に追加で待つ時間です。JavaScriptで画面を描画するサイト向けです。
+  "wait_after_load_ms": 2500,
+
+  // trueにすると、通信が落ち着くのを待ってからスクショを撮ります。
+  // 広告や解析タグで完全に静止しないサイトもあるため、失敗しても処理は続けます。
+  "wait_until_network_idle": true,
+
+  // bodyのテキストが一定時間変わらないことを確認してからスクショを撮ります。
+  // ページ反映前の真っ白スクショを減らすための設定です。
+  "wait_for_stable_body_ms": 1200,
+
+  // スクリーンショットを実際の見た目に近づけるため、初期値はONにしています。
+  // クリック、入力、ダウンロード許可は行いません。
+  "javascript_enabled": true,
+
+  // HTML本文を保存するかどうかです。
+  // 発表用のスクショ確認だけならfalseのままで十分です。
+  "save_html": false,
+
+  // trueにすると、PhishTankのCSVでverified=yesかつonline=yesのURLだけを使います。
+  // OpenPhishの公開テキストフィードにはこの列がないため、OpenPhishのURLはそのまま候補扱いです。
+  "require_verified_online": true,
+
+  // trueにすると、実際にアクセスした結果が200〜399でスクショ保存できたものだけをreview.csvに残します。
+  // 404や503などはrejected.csvに分けます。
+  "require_http_success": true,
+
+  // trueにすると、reference_sitesに登録している正規サイト本体は候補から除外します。
+  // 公開DBに本物URLが誤って混ざっていても、screenshots側に保存しないための設定です。
+  "exclude_reference_hosts": true,
+
+  // ここに単語を入れると、その単語を含むURLや公開DB上の標的ブランドだけを観察します。
+  // 日本企業・日本でよく使われるサービスを広めに入れています。
+  // 空配列 [] にすると、フィード内のURLを上から順に観察します。
+  "target_terms": [
+    "docomo",
+    "daccount",
+    "d account",
+    "dアカウント",
+    "ahamo",
+    "nttdocomo",
+    "ntt",
+    "rakuten",
+    "楽天",
+    "rakuten card",
+    "jcb",
+    "saison",
+    "saison card",
+    "epos",
+    "epos card",
+    "orico",
+    "aeon",
+    "aeon card",
+    "paypay",
+    "mercari",
+    "メルカリ",
+    "amazon japan",
+    "amazon co jp",
+    "yahoo japan",
+    "yahoo",
+    "line",
+    "mufg",
+    "smbc",
+    "mitsui sumitomo",
+    "三井住友",
+    "sumitomo mitsui",
+    "mizho",
+    "mizuho",
+    "みずほ",
+    "resona",
+    "りそな",
+    "jp bank",
+    "japan post",
+    "日本郵便",
+    "ゆうちょ",
+    "yucho",
+    "jibun bank",
+    "au jibun",
+    "sony bank",
+    "monex",
+    "nomura",
+    "daiwa",
+    "matsui",
+    "softbank",
+    "kddi",
+    "au",
+    "uq",
+    "ymobile",
+    "eki net",
+    "ekinet",
+    "suica",
+    "view card",
+    "jr east",
+    "ana",
+    "jal",
+    "yamato",
+    "kuronekoyamato",
+    "sagawa",
+    "etc meisai",
+    "etc-meisai",
+    "e tax",
+    "etax",
+    "nta",
+    "myna",
+    "mynaportal",
+    "nenkin",
+    "hellowork",
+    "dmm",
+    "nintendo",
+    "playstation",
+    "sony",
+    "muji",
+    "uniqlo",
+    "ticket pia",
+    "pia",
+    "lawson ticket",
+    "l-tike"
+  ],
+
+  // ページ本文やタイトルに含まれていたら記録するブランド語です。
+  // 増やすほど「ブランド名あり」「フィッシング疑い」の自動分類に反映されます。
+  "brand_terms": [
+    "amazon",
+    "apple",
+    "google",
+    "microsoft",
+    "facebook",
+    "instagram",
+    "line",
+    "rakuten",
+    "楽天",
+    "rakuten card",
+    "jcb",
+    "saison",
+    "epos",
+    "orico",
+    "docomo",
+    "dアカウント",
+    "d account",
+    "ahamo",
+    "ntt",
+    "aeon",
+    "paypay",
+    "mercari",
+    "メルカリ",
+    "japan post",
+    "日本郵便",
+    "ゆうちょ",
+    "yucho",
+    "三井住友",
+    "smbc",
+    "mufg",
+    "mizuho",
+    "みずほ",
+    "resona",
+    "りそな",
+    "softbank",
+    "kddi",
+    "au",
+    "yamato",
+    "sagawa",
+    "eki net",
+    "suica",
+    "ana",
+    "jal",
+    "dmm",
+    "nintendo",
+    "playstation"
+  ],
+
+  // 「本物はどっち？」用に、正規サイトのスクリーンショットも同じ実行で保存します。
+  // reports/phishing_observation/<実行日時>/references/ に出力されます。
+  "reference_sites": {
+    "docomo": "https://www.docomo.ne.jp/",
+    "daccount": "https://id.smt.docomo.ne.jp/",
+    "ahamo": "https://ahamo.com/",
+    "rakuten-card": "https://www.rakuten-card.co.jp/",
+    "jcb": "https://www.jcb.co.jp/",
+    "amazon-japan": "https://www.amazon.co.jp/",
+    "paypay": "https://paypay.ne.jp/",
+    "mercari": "https://jp.mercari.com/",
+    "japanpost": "https://www.post.japanpost.jp/",
+    "mufg": "https://www.bk.mufg.jp/",
+    "smbc": "https://www.smbc.co.jp/",
+    "line": "https://line.me/ja/",
+    "yahoo-japan": "https://www.yahoo.co.jp/"
+  }
+}
