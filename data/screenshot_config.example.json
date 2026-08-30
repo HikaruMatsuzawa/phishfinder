@@ -14,14 +14,15 @@
     "limit": 10,
     "timeout_seconds": 5,
     "max_html_bytes": 200000,
-    "user_agent": "phishfinder-research-tool/0.1"
+    "user_agent": "phishfinder-research-tool/0.1",
+    "favicon_enabled": true
   },
   "screenshots": {
     "enabled": true,
     "limit": 1,
     "output_dir": "reports/screenshots",
     "timeout_seconds": 8,
-    "javascript_enabled": false,
+    "javascript_enabled": true,
     "include_seed": true
   },
   "review": {

@@ -3,10 +3,12 @@
   "seeds_path": "data/seeds.txt",
 
   // 先頭から何件のseedを使うかです。nullにすると全seedを使います。
-  "seed_limit": null,
+  // 最初は3件で動作確認し、発表用の本調査では10件、30件、nullのように増やします。
+  "seed_limit": 3,
 
   // 1つのseedから最大何件の類似ドメイン候補を調べるかです。nullにすると生成した全候補を使います。
-  "variant_limit": 30,
+  // 最初は10件で確認し、本調査では100件以上に増やします。
+  "variant_limit": 10,
 
   // trueにすると、実在した候補についてMX/NSレコードも取得します。DNS問い合わせが増えるため遅くなります。
   "dns_details": false,
@@ -40,15 +42,19 @@
     "max_html_bytes": 200000,
 
     // HTTPアクセス時に送るUser-Agentです。
-    "user_agent": "phishfinder-research-tool/0.1"
+    "user_agent": "phishfinder-research-tool/0.1",
+
+    // trueにすると、/favicon.ico を取得してseedと候補の類似度をContent Riskに反映します。
+    "favicon_enabled": true
   },
 
   "screenshots": {
-    // trueにすると、Domain Risk上位候補のスクリーンショットを取得します。デフォルトは安全のためfalseです。
+    // trueにすると、Domain Risk上位候補のスクリーンショットを取得します。
+    // このリポジトリではDocker内で小さく撮る前提なので、デフォルトでtrueにしています。
     "enabled": true,
 
     // スクリーンショットを取得する候補数です。seedページはこの数とは別に保存されます。
-    "limit": 30,
+    "limit": 3,
 
     // スクリーンショット保存先です。seedごとにサブフォルダを作ります。
     "output_dir": "reports/screenshots",
@@ -56,8 +62,9 @@
     // 1ページあたりのタイムアウト秒数です。
     "timeout_seconds": 8,
 
-    // falseならJavaScriptを無効化して撮影します。見た目は崩れることがありますが安全寄りです。
-    "javascript_enabled": false,
+    // trueならJavaScriptを有効にして撮影します。実サイトに近い見た目になりますが、未知サイトのJSを実行します。
+    // Docker内・低権限・クリックなしで動かす前提なら、発表用スクショではtrueがおすすめです。
+    "javascript_enabled": true,
 
     // trueにすると、候補だけでなくseedの正規サイトもseedサブフォルダに保存します。
     "include_seed": true

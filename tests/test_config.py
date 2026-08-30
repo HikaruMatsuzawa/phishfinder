@@ -31,7 +31,8 @@ class ConfigTests(unittest.TestCase):
     "limit": 7,
     "timeout_seconds": 4,
     "max_html_bytes": 12345,
-    "user_agent": "test-agent"
+    "user_agent": "test-agent",
+    "favicon_enabled": false
   },
   "screenshots": {
     "enabled": true,
@@ -64,6 +65,7 @@ class ConfigTests(unittest.TestCase):
         self.assertTrue(config.http.enabled)
         self.assertEqual(7, config.http.limit)
         self.assertEqual("test-agent", config.http.user_agent)
+        self.assertFalse(config.http.favicon_enabled)
         self.assertTrue(config.screenshots.enabled)
         self.assertEqual(5, config.screenshots.limit)
         self.assertTrue(config.screenshots.include_seed)
@@ -77,6 +79,16 @@ class ConfigTests(unittest.TestCase):
             '{"url": "https://example.com/path", \n"value": 1}',
             strip_json_comments(text),
         )
+
+    def test_null_limits_mean_all_items(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "config.json"
+            path.write_text('{"seed_limit": null, "variant_limit": null}', encoding="utf-8")
+
+            config = load_config(path)
+
+        self.assertIsNone(config.seed_limit)
+        self.assertIsNone(config.variant_limit)
 
 
 if __name__ == "__main__":

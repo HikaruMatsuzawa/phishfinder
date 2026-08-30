@@ -60,6 +60,7 @@ class ReportTests(unittest.TestCase):
             "reports/screenshots/example.com/candidates/example-login.com.png",
             payload[0]["screenshot_path"],
         )
+        self.assertIn("similarity", payload[0]["http"])
         json.dumps(payload)
 
     def test_write_review_csv_has_human_label_column(self):

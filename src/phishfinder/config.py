@@ -12,7 +12,7 @@ class ScreenshotConfig:
     limit: int = 20
     output_dir: Path = Path("reports/screenshots")
     timeout_seconds: float = 8.0
-    javascript_enabled: bool = False
+    javascript_enabled: bool = True
     include_seed: bool = True
 
 
@@ -23,6 +23,7 @@ class HTTPConfig:
     timeout_seconds: float = 5.0
     max_html_bytes: int = 200_000
     user_agent: str = "phishfinder-research-tool/0.1"
+    favicon_enabled: bool = True
 
 
 @dataclass(frozen=True)
@@ -59,6 +60,15 @@ def _optional_int(value: Any, default: int | None) -> int | None:
     if isinstance(value, str) and value.lower() in {"none", "all", ""}:
         return None
     return int(value)
+
+
+def _optional_int_from(raw: dict[str, Any], key: str, default: int | None) -> int | None:
+    if key not in raw:
+        return default
+    value = raw[key]
+    if value is None:
+        return None
+    return _optional_int(value, default)
 
 
 def strip_json_comments(text: str) -> str:
@@ -138,6 +148,7 @@ def load_config(path: Path) -> AppConfig:
         timeout_seconds=float(http_raw.get("timeout_seconds", http_defaults.timeout_seconds)),
         max_html_bytes=int(http_raw.get("max_html_bytes", http_defaults.max_html_bytes)),
         user_agent=str(http_raw.get("user_agent", http_defaults.user_agent)),
+        favicon_enabled=bool(http_raw.get("favicon_enabled", http_defaults.favicon_enabled)),
     )
     review_defaults = ReviewConfig()
     review = ReviewConfig(
@@ -151,8 +162,8 @@ def load_config(path: Path) -> AppConfig:
 
     return AppConfig(
         seeds_path=_path(raw.get("seeds_path"), defaults.seeds_path),
-        seed_limit=_optional_int(raw.get("seed_limit"), defaults.seed_limit),
-        variant_limit=_optional_int(raw.get("variant_limit"), defaults.variant_limit),
+        seed_limit=_optional_int_from(raw, "seed_limit", defaults.seed_limit),
+        variant_limit=_optional_int_from(raw, "variant_limit", defaults.variant_limit),
         dns_details=bool(raw.get("dns_details", defaults.dns_details)),
         rdap=bool(raw.get("rdap", defaults.rdap)),
         tls=bool(raw.get("tls", defaults.tls)),

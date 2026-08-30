@@ -5,6 +5,7 @@ import csv
 import json
 import sys
 import unittest
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
@@ -15,6 +16,7 @@ if str(SRC) not in sys.path:
 
 from phishfinder.config import AppConfig, load_config
 from phishfinder.dns_probe import DNSProbe
+from phishfinder.favicon_probe import FaviconProbe, favicon_similarity
 from phishfinder.http_probe import HTTPProbe, brand_terms_from_seed
 from phishfinder.models import ContentResult
 from phishfinder.pipeline import discover_existing_domains, rank_domains
@@ -26,6 +28,7 @@ from phishfinder.screenshot_probe import ScreenshotProbe
 from phishfinder.scoring import content_risk
 from phishfinder.tls_probe import TLSProbe
 from phishfinder.variants import generate_variants
+from phishfinder.visual_similarity import screenshot_similarity
 
 DEFAULT_SEEDS = ROOT / "data" / "seeds.txt"
 DEFAULT_REPORT = ROOT / "reports" / "domain_report.json"
@@ -144,6 +147,30 @@ def attach_screenshot_paths(ranked, captured: dict[str, Path]):
     return enriched
 
 
+def enrich_with_screenshot_similarity(ranked, captured: dict[str, Path]):
+    enriched = []
+    for item in ranked:
+        seed_path = captured.get(f"seed:{item.observation.seed_domain}")
+        candidate_path = captured.get(item.domain)
+        if item.content is None or seed_path is None or candidate_path is None:
+            enriched.append(item)
+            continue
+
+        similarity_value = screenshot_similarity(seed_path, candidate_path)
+        observation = replace(item.content.observation, screenshot_similarity=similarity_value)
+        score = content_risk(observation, brand_terms_from_seed(item.observation.seed_domain))
+        enriched.append(
+            type(item)(
+                domain=item.domain,
+                score=item.score,
+                observation=item.observation,
+                content=ContentResult(observation=observation, score=score),
+                screenshot_path=item.screenshot_path,
+            )
+        )
+    return enriched
+
+
 def resolve_screenshot_config(config):
     return type(config)(
         enabled=config.enabled,
@@ -160,11 +187,25 @@ def enrich_with_http_metadata(config: AppConfig, ranked):
         return ranked
 
     probe = HTTPProbe(config.http)
+    favicon_probe = FaviconProbe(
+        timeout_seconds=config.http.timeout_seconds,
+        user_agent=config.http.user_agent,
+    )
+    seed_favicons: dict[str, bytes | None] = {}
     enriched = list(ranked)
     target_count = min(config.http.limit, len(enriched))
     print(f"[http] 上位 {target_count} 件のHTTPメタデータを取得中...")
     for index, item in enumerate(enriched[:target_count]):
         observation = probe.lookup(item.domain, item.observation.dns.addresses)
+        if config.http.favicon_enabled:
+            seed_domain = item.observation.seed_domain
+            if seed_domain not in seed_favicons:
+                seed_favicons[seed_domain] = favicon_probe.lookup(seed_domain)
+            candidate_favicon = favicon_probe.lookup(item.domain, item.observation.dns.addresses)
+            observation = replace(
+                observation,
+                favicon_similarity=favicon_similarity(seed_favicons[seed_domain], candidate_favicon),
+            )
         score = content_risk(observation, brand_terms_from_seed(item.observation.seed_domain))
         enriched[index] = type(item)(
             domain=item.domain,
@@ -271,6 +312,7 @@ def scan_from_config(config: AppConfig) -> int:
         screenshot_config = resolve_screenshot_config(config.screenshots)
         captured = ScreenshotProbe(screenshot_config).capture(ranked)
         ranked = attach_screenshot_paths(ranked, captured)
+        ranked = enrich_with_screenshot_similarity(ranked, captured)
         candidate_count = len([key for key in captured if not key.startswith("seed:")])
         seed_count = len(captured) - candidate_count
         print(f"スクリーンショット: seed {seed_count} 件、候補 {candidate_count} 件を保存しました。")
@@ -298,6 +340,7 @@ def print_scan_settings(config: AppConfig, seed_count: int) -> None:
     print(f"  HTTPメタデータ: {'有効' if config.http.enabled else '無効'}")
     if config.http.enabled:
         print(f"  HTTP対象: 上位 {config.http.limit} 件")
+        print(f"  favicon比較: {'有効' if config.http.favicon_enabled else '無効'}")
     print(f"  スクリーンショット: {'有効' if config.screenshots.enabled else '無効'}")
     if config.screenshots.enabled:
         print(f"  スクリーンショット対象: 上位 {config.screenshots.limit} 件")

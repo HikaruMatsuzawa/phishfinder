@@ -9,11 +9,37 @@ class VariantGenerationTests(unittest.TestCase):
 
         self.assertIn("examle.com", variants)
         self.assertIn("exampple.com", variants)
+        self.assertIn("examplee.com", variants)
         self.assertIn("exmaple.com", variants)
         self.assertIn("examp1e.com", variants)
         self.assertIn("example-login.com", variants)
+        self.assertIn("exampleid.com", variants)
         self.assertIn("secure-example.com", variants)
         self.assertIn("example.net", variants)
+
+    def test_generates_keyboard_neighbor_typos(self):
+        variants = set(generate_variants("rakuten.co.jp"))
+
+        self.assertIn("eakuten.co.jp", variants)
+        self.assertIn("rqkuten.co.jp", variants)
+
+    def test_keeps_common_japanese_public_suffixes_together(self):
+        self.assertEqual(("ntt-east", "co.jp"), split_domain("ntt-east.co.jp"))
+        self.assertEqual(("docomo", "ne.jp"), split_domain("docomo.ne.jp"))
+
+        variants = set(generate_variants("ntt-east.co.jp"))
+
+        self.assertIn("ntteast.co.jp", variants)
+        self.assertIn("ntt-east-login.co.jp", variants)
+        self.assertIn("login-ntt-east.co.jp", variants)
+        self.assertIn("ntt-east.jp", variants)
+
+    def test_generates_security_and_payment_words(self):
+        variants = set(generate_variants("paypay.ne.jp"))
+
+        self.assertIn("paypay-security.ne.jp", variants)
+        self.assertIn("paypaypay.ne.jp", variants)
+        self.assertIn("id-paypay.ne.jp", variants)
 
     def test_idn_homograph_is_encoded_as_punycode(self):
         variants = set(generate_variants("paypal.com"))

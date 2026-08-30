@@ -1,0 +1,70 @@
+{
+  // 動作確認用の小さい設定です。通常の1コマンド実行前に短く確認したいときに使います。
+  "seeds_path": "data/seeds.txt",
+
+  // 先頭から3件だけ確認します。nullにすると全seedを使います。
+  "seed_limit": 3,
+
+  // 1 seedあたり10候補だけ確認します。nullにすると生成した全候補を使います。
+  "variant_limit": 10,
+
+  // 確認用では速度優先のためOFFにします。
+  "dns_details": false,
+  "rdap": false,
+  "tls": false,
+
+  // 標準出力に進捗バーを出します。
+  "progress": true,
+
+  // 確認用レポートの保存先です。
+  "output_format": "json",
+  "output_path": "reports/smoke_report.json",
+
+  "http": {
+    // HTTPステータス、タイトル、HTML、ログインフォーム、ブランド名を確認します。
+    "enabled": true,
+
+    // HTTP確認は上位10件までにします。
+    "limit": 10,
+
+    // 1ページあたりの待ち時間です。
+    "timeout_seconds": 5,
+
+    // HTMLの読み込み上限です。
+    "max_html_bytes": 200000,
+
+    // HTTPアクセス時のUser-Agentです。
+    "user_agent": "phishfinder-research-tool/0.1",
+
+    // faviconを取得し、seedと候補の類似度をContent Riskに反映します。
+    "favicon_enabled": true
+  },
+
+  "screenshots": {
+    // 確認用でもスクリーンショットを撮ります。
+    "enabled": true,
+
+    // スクリーンショットは上位3件だけ撮ります。
+    "limit": 3,
+
+    // seedごとのサブフォルダに保存します。
+    "output_dir": "reports/screenshots",
+
+    // 1ページあたりの待ち時間です。
+    "timeout_seconds": 8,
+
+    // 実サイトに近い見た目で撮るためJavaScriptをONにします。
+    "javascript_enabled": true,
+
+    // 比較用にseedの正規サイトも撮ります。
+    "include_seed": true
+  },
+
+  "review": {
+    // 人間レビュー用CSVも出力します。
+    "enabled": true,
+
+    // 確認用CSVの保存先です。
+    "output_path": "reports/smoke_review.csv"
+  }
+}

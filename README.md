@@ -1,83 +1,76 @@
 # phishfinder
 
-偽サイト・なりすましドメインの候補を自分で生成し、DNS・RDAP・TLSなどの情報から怪しさをランキングする実験用ツールです。
+偽サイト・なりすましドメインの候補を生成し、DNS、RDAP、TLS、HTTP、スクリーンショットから怪しさをランキングする実験用ツールです。
 
-通常の実行はDockerの1コマンドで済むようにしています。`PYTHONPATH` の指定やローカルPython環境の準備は不要です。
+## 実行方法
 
-## いちばん簡単な実行方法
-
-Docker Desktopを起動した状態で、リポジトリ直下から実行します。
+Docker Desktopを起動し、リポジトリ直下で次の1コマンドを実行します。
 
 ```powershell
 docker compose run --rm --build phishfinder
 ```
 
-この1コマンドで、次の処理をまとめて実行します。
+通常利用で打つコマンドはこれだけです。調査対象数、スクリーンショット、RDAP、TLSなどは `config.json` を編集して変更します。
 
-1. `data/seeds.txt` を読み込む
-2. 各seedから類似ドメイン候補を生成する
+## 何が実行されるか
+
+1. `data/seeds.txt` から正規ドメインを読む
+2. seedごとに類似ドメイン候補を生成する
 3. DNSで実在する候補だけを残す
-4. Domain Riskを算出する
-5. `reports/domain_report.json` にレポートを保存する
+4. 必要に応じてRDAP、TLS、HTTP、スクリーンショットを取得する
+5. Domain RiskとContent Riskを算出する
+6. `reports/domain_report.json` と `reports/review.csv` を出力する
 
-小さく動作確認する場合:
+実行中は標準出力に、現在の設定、seedごとの進捗、ヒット件数、保存先、上位候補のサマリーが表示されます。
 
-```powershell
-docker compose run --rm --build phishfinder --seed-limit 1 --variant-limit 5
-```
+## 設定
 
-テストもDocker内で実行できます。
+設定は `config.json` にまとめています。コメント付きで書いてあるので、基本的にはこのファイルだけ見れば調整できます。
 
-```powershell
-docker compose run --rm --build phishfinder test
-```
+よく変える項目:
 
-レポートはホスト側の `reports/` に保存されます。seedはホスト側の `data/seeds.txt` を読みます。
+- `seed_limit`: 使うseed数。`null` にすると `data/seeds.txt` の全seedを使います。
+- `variant_limit`: 1 seedあたりの候補数。`null` にすると生成した全候補を調べます。
+- `rdap`: 登録日を取得するか。
+- `tls`: TLS証明書を取得するか。
+- `http.enabled`: HTTPステータス、タイトル、HTML、ログインフォーム、ブランド名を確認するか。
+- `screenshots.enabled`: スクリーンショットを取得するか。初期値は `true` です。
+- `screenshots.javascript_enabled`: スクリーンショット撮影時にJavaScriptを有効にするか。
 
-## 設定ファイル
+`seed_limit` と `variant_limit` を両方 `null` にすると調査量が大きくなります。最初は小さい値で確認してから増やしてください。
 
-通常はコマンドオプションではなく、`config.json` を編集して設定します。
+## 類似ドメイン生成
+
+候補生成では、次の変換を組み合わせます。
+
+- 文字削除、文字追加、連続文字化、隣接文字の入れ替え
+- `o -> 0`、`l -> 1`、`s -> 5` のような見た目の置換
+- キーボードで近い文字への置換
+- `login`、`secure`、`id`、`pay`、`mypage`、`support` などの単語追加
+- `ntt-east.co.jp` から `ntteast.co.jp` のようなハイフン除去
+- `.com`、`.jp`、`.co.jp`、`.ne.jp`、`.site`、`.online` などへのTLD変更
+- キリル文字などを使ったIDNホモグラフ
+
+`.co.jp` や `.ne.jp` は1つのサフィックスとして扱います。たとえば `ntt-east.co.jp` は `ntt-east` と `co.jp` に分けて変換します。
+
+## スクリーンショット
+
+デフォルトでは、スクリーンショットも取得します。不要な場合は `config.json` の `screenshots.enabled` を `false` にします。
 
 ```json
-{
-  "seeds_path": "data/seeds.txt",
-  "seed_limit": 3,
-  "variant_limit": 50,
-  "dns_details": false,
-  "rdap": false,
-  "tls": false,
-  "progress": true,
-  "output_format": "json",
-  "output_path": "reports/domain_report.json",
-  "screenshots": {
-    "enabled": false,
-    "limit": 20,
-    "output_dir": "reports/screenshots",
-    "timeout_seconds": 8,
-    "javascript_enabled": false
-  }
+"screenshots": {
+  "enabled": true,
+  "limit": 3,
+  "output_dir": "reports/screenshots",
+  "timeout_seconds": 8,
+  "javascript_enabled": true,
+  "include_seed": true
 }
 ```
 
-デフォルトでは、1つのseedにつき最大50個の亜種ドメインを作ります。`seed_limit` が3なので、通常実行では最大150候補をDNS確認します。
+JavaScriptはONにできます。むしろ発表で使うスクリーンショットは、JavaScriptをONにした方が実サイトに近い見た目になりやすいです。
 
-すべてのseedを使いたい場合は、`seed_limit` を `null` にします。すべての亜種を使いたい場合は、`variant_limit` を `null` にします。ただし時間が大きく増えます。
-
-スクリーンショットを取得したい場合は、`screenshots.enabled` を `true` にします。デフォルトでは無効です。
-
-```json
-{
-  "screenshots": {
-    "enabled": true,
-    "limit": 20,
-    "output_dir": "reports/screenshots",
-    "timeout_seconds": 8,
-    "javascript_enabled": false
-  }
-}
-```
-
-スクリーンショットはDomain Risk上位から最大 `limit` 件だけ取得します。private IP、localhost、リンクローカル、予約済みIPに解決された候補は除外します。クリック、ログイン、フォーム送信は行いません。
+安全面では、普段のブラウザではなくDocker内のPlaywrightで撮影します。クリック、ログイン、フォーム送信、ダウンロード許可は行いません。private IP、localhost、リンクローカル、予約済みIPに解決される候補は除外します。
 
 保存先はseedごとに分かれます。
 
@@ -90,164 +83,48 @@ reports/screenshots/
       1ntt.com.png
 ```
 
-スクリーンショット取得を小さく試すためのサンプル設定もあります。
+さらに小さい確認用設定は `data/smoke_config.json` にあります。
 
 ```powershell
-docker compose run --rm --build phishfinder --config data/screenshot_config.example.json
+docker compose run --rm --build phishfinder --config data/smoke_config.json
 ```
 
-## よく使うコマンド
+## 出力
 
-一時的に設定を上書きしたい場合だけ、コマンドオプションを使えます。
+主な出力先:
 
-RDAP登録日とTLS証明書情報も含める場合:
+- `reports/domain_report.json`: 機械的に見るための詳細レポート
+- `reports/review.csv`: 人間が確認して分類するためのCSV
+- `reports/screenshots/`: seedと候補のスクリーンショット
 
-```powershell
-docker compose run --rm --build phishfinder --rdap --tls
-```
-
-MX/NSレコードも含める場合:
-
-```powershell
-docker compose run --rm --build phishfinder --dns-details
-```
-
-JSONではなくCSVで保存する場合:
-
-```powershell
-docker compose run --rm --build phishfinder --format csv --output reports/domain_report.csv
-```
-
-調査量を増やす場合。最初は小さく試し、慣れてから増やします。
-
-```powershell
-docker compose run --rm --build phishfinder --seed-limit 10 --variant-limit 1000 --rdap --tls
-```
-
-進捗バーを表示しない場合:
-
-```powershell
-docker compose run --rm --build phishfinder --no-progress
-```
-
-## seedの使い方
-
-`data/seeds.txt` には、調査対象となる正規ドメインを1行ずつ保存します。デフォルトでは、日本企業・日本サービス中心のseedを入れています。特にNTTグループは厚めに入れています。
-
-公開ランキングからseedを保存することもできます。データ元は研究用途でよく使われるTrancoです。
-
-```powershell
-docker compose run --rm --build phishfinder import-seeds --limit 100 --output data/tranco_seeds.txt
-```
-
-注意: `--output data/seeds.txt` を指定すると、現在の日本企業seedを上書きします。
-
-Tranco公式サイトでは、最新の標準リストを取得できることが案内されています。
-https://tranco-list.eu/
-
-追加の候補として、手動で選んだ日本企業中心の候補も用意しています。
-
-```powershell
-docker compose run --rm --build phishfinder --seeds data/recommended_seeds.txt --seed-limit 3 --variant-limit 100
-```
-
-## ヒット数の見方
-
-`--seed-limit 1 --variant-limit 5` の場合、「1つのseedから5個の候補を作り、そのうち何件がDNSで実在したか」を表示します。
-
-例:
-
-```text
-[scan] ntt.com: 5 件の候補をDNS確認中...
-[scan] ntt.com: 5 件中 2 件が実在しました。
-合計: seed 1 件、候補 5 件、実在候補 2 件
-```
-
-人気ドメインや短いドメインでは、よくあるtypoやキーワード付きドメインがすでに登録済みのことがあります。そのため、少数サンプルではヒット率が高く見える場合があります。発表では `--variant-limit 1000` 以上で全体の割合を見る方が自然です。
-
-## 遅いときの理由
-
-通常実行ではA/AAAAのDNS確認だけを行います。`--dns-details` を付けると、実在した候補ごとにMXとNSも確認するため遅くなります。
-
-`--rdap` と `--tls` もネットワーク確認が増えるため、最初は小さい件数で試してください。
-
-## ファイル構成
-
-- `Dockerfile`: Dockerイメージ定義
-- `docker-compose.yml`: 1コマンド実行用の設定
-- `run.py`: コンテナ内で動く一括実行スクリプト
-- `data/seeds.txt`: 調査対象の正規ドメイン一覧。1行1ドメイン
-- `reports/domain_report.json`: デフォルトの出力先
-- `reports/review.csv`: 人間が分類するためのレビューCSV
-- `reports/screenshots/`: スクリーンショット保存先
-- `src/phishfinder/`: 実装
-- `tests/`: テスト
-
-## 現在できること
-
-- 類似ドメイン候補の生成
-- A/AAAAレコードによる実在確認
-- `nslookup` によるMX/NSレコード取得
-- RDAPによる登録日の取得
-- TLS証明書の取得
-- HTTPステータス、ページタイトル、HTML本文の一部取得
-- ログインフォーム検出
-- ブランド名検出
-- Domain Riskの採点
-- Content Riskの採点
-- JSON/CSVレポート出力
-- `tqdm` による進捗バー表示
-- Dockerによる実行環境の分離
-- Playwrightによるスクリーンショット取得。デフォルトは無効
-
-## 人間レビューCSV
-
-通常実行すると、メインレポートとは別に `reports/review.csv` も出力します。
-
-```powershell
-docker compose run --rm --build phishfinder
-```
-
-レビューCSVには、次のような列が入ります。
+`reports/review.csv` には次の列が入ります。
 
 ```text
 rank, seed_domain, domain, domain_risk, content_risk, http_status, http_title, has_login_form, screenshot_path, human_label, label_choices, memo
 ```
 
-`human_label` は最初は `未確認` です。確認後に、次のような分類へ手で書き換えます。
+`human_label` は最初は `未確認` です。確認後に次のような分類へ書き換えます。
 
 ```text
-確認対象
-無関係
-パーキング
-ブランド意識あり
-フィッシング疑い
+確認対象 / 無関係 / パーキング / ブランド意識あり / フィッシング疑い
 ```
 
-## Dockerを使わずに動かす場合
+## seed
 
-ローカルPythonで動かす場合だけ、仮想環境を作ります。
+`data/seeds.txt` は1行1ドメインです。初期状態では日本企業とNTTグループを中心に入れています。
+
+公開ランキングからseedを作る機能もありますが、通常の実験では `data/seeds.txt` を編集するだけで十分です。
+
+## テスト
+
+変更後はDocker内でテストします。
 
 ```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
-python run.py
+docker compose run --rm --build phishfinder test
 ```
-
-## TDDでの進め方
-
-機能を増やすときは、次の順で進めます。
-
-1. `tests/` に失敗するテストを書く
-2. `src/phishfinder/` に最小実装を追加する
-3. `docker compose run --rm --build phishfinder test` を実行する
-4. `run.py` とREADMEを更新する
 
 ## 安全面
 
-Dockerでは、ローカルPython環境や普段使いブラウザから処理を分離できます。HTTPメタデータ取得とスクリーンショット取得もコンテナ内で実行します。
+このツールは調査候補の発見と観察だけを行います。ログイン試行、フォーム送信、脆弱性スキャン、管理画面探索は行いません。
 
-スクリーンショット取得はデフォルトでは無効です。有効にした場合も、上位候補だけに限定します。コンテナは低権限ユーザーで実行し、設定用の `config.json`、seed用の `data/`、出力用の `reports/` だけをマウントします。
-
-ログイン試行、フォーム送信、脆弱性スキャン、管理画面探索は行いません。
+Dockerを使うことで、ローカルPython環境や普段使いブラウザから処理を分離します。ただし未知サイトへHTTPアクセスする以上、リスクはゼロではありません。大きな調査を行う前に、`seed_limit`、`variant_limit`、`screenshots.limit` を小さくして挙動を確認してください。

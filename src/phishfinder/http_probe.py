@@ -21,6 +21,22 @@ def extract_title(html: str) -> str:
     return unescape(title)
 
 
+def decode_html(raw: bytes, charset: str | None) -> str:
+    candidates = [charset, "utf-8", "cp932", "shift_jis", "euc_jp"]
+    decoded = []
+    for candidate in candidates:
+        if not candidate:
+            continue
+        try:
+            text = raw.decode(candidate, errors="replace")
+        except LookupError:
+            continue
+        decoded.append((text.count("\ufffd"), text))
+    if not decoded:
+        return raw.decode("utf-8", errors="replace")
+    return min(decoded, key=lambda item: item[0])[1]
+
+
 def html_to_text(html: str) -> str:
     without_scripts = re.sub(
         r"<(script|style)[^>]*>.*?</\1>",
@@ -84,7 +100,7 @@ class HTTPProbe:
             except (URLError, TimeoutError, OSError):
                 continue
 
-            html = raw.decode(charset, errors="replace")
+            html = decode_html(raw, charset)
             return ContentObservation(
                 domain=domain,
                 url=url,

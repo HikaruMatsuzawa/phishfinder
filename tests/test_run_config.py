@@ -4,8 +4,8 @@ from pathlib import Path
 from unittest.mock import patch
 
 import run
-from phishfinder.config import AppConfig, ReviewConfig, ScreenshotConfig
-from phishfinder.models import ContentObservation, DNSRecordSet, DomainObservation
+from phishfinder.config import AppConfig, HTTPConfig, ReviewConfig, ScreenshotConfig
+from phishfinder.models import ContentObservation, ContentResult, DNSRecordSet, DomainObservation
 from phishfinder.pipeline import RankedDomain
 from phishfinder.scoring import domain_risk
 
@@ -99,7 +99,7 @@ class RunConfigTests(unittest.TestCase):
             capture.assert_called_once()
 
     def test_enrich_with_http_metadata_adds_content_score(self):
-        config = AppConfig(progress=False)
+        config = AppConfig(progress=False, http=HTTPConfig(favicon_enabled=False))
         domain_observation = DomainObservation(
             "example-login.com",
             "example.com",
@@ -126,6 +126,72 @@ class RunConfigTests(unittest.TestCase):
 
         self.assertIsNotNone(enriched[0].content)
         self.assertEqual(40, enriched[0].content.score.value)
+
+    def test_enrich_with_http_metadata_adds_favicon_similarity(self):
+        config = AppConfig(progress=False)
+        domain_observation = DomainObservation(
+            "example-login.com",
+            "example.com",
+            dns=DNSRecordSet(addresses=("8.8.8.8",)),
+        )
+        ranked = [
+            RankedDomain(
+                "example-login.com",
+                domain_risk(domain_observation),
+                domain_observation,
+            )
+        ]
+
+        with patch.object(run.HTTPProbe, "lookup") as lookup:
+            lookup.return_value = ContentObservation(domain="example-login.com")
+            with patch.object(run.FaviconProbe, "lookup", side_effect=[b"seed", b"seed"]):
+                enriched = run.enrich_with_http_metadata(config, ranked)
+
+        self.assertEqual(1.0, enriched[0].content.observation.favicon_similarity)
+        self.assertIn("faviconが類似", enriched[0].content.score.reasons)
+
+    def test_enrich_with_screenshot_similarity_updates_content_risk(self):
+        ranked = [
+            RankedDomain(
+                "example-login.com",
+                domain_risk(
+                    DomainObservation(
+                        "example-login.com",
+                        "example.com",
+                        dns=DNSRecordSet(addresses=("8.8.8.8",)),
+                    )
+                ),
+                DomainObservation(
+                    "example-login.com",
+                    "example.com",
+                    dns=DNSRecordSet(addresses=("8.8.8.8",)),
+                ),
+                content=ContentResult(
+                    observation=ContentObservation(
+                        domain="example-login.com",
+                        text="Example",
+                    ),
+                    score=domain_risk(
+                        DomainObservation(
+                            "example-login.com",
+                            "example.com",
+                            dns=DNSRecordSet(addresses=("8.8.8.8",)),
+                        )
+                    ),
+                ),
+                screenshot_path=Path("reports/screenshots/example.com/candidates/example-login.com.png"),
+            )
+        ]
+        captured = {
+            "seed:example.com": Path("reports/screenshots/example.com/seed/example.com.png"),
+            "example-login.com": Path("reports/screenshots/example.com/candidates/example-login.com.png"),
+        }
+
+        with patch.object(run, "screenshot_similarity", return_value=0.95):
+            enriched = run.enrich_with_screenshot_similarity(ranked, captured)
+
+        self.assertEqual(0.95, enriched[0].content.observation.screenshot_similarity)
+        self.assertIn("スクリーンショットが類似", enriched[0].content.score.reasons)
 
 
 if __name__ == "__main__":

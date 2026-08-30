@@ -44,6 +44,11 @@ def ranked_domains_to_jsonable(ranked_domains: list[RankedDomain]) -> list[dict[
                 "status_code": content.status_code,
                 "title": content.title,
                 "has_login_form": content.has_login_form,
+                "similarity": {
+                    "html": round(content.html_similarity, 3),
+                    "favicon": round(content.favicon_similarity, 3),
+                    "screenshot": round(content.screenshot_similarity, 3),
+                },
                 "text_excerpt": content.text[:500],
                 "html_bytes": len(content.html.encode("utf-8")),
             }
